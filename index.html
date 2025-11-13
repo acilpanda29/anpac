@@ -1586,13 +1586,13 @@
         // Konfigurasi Firebase
         // =========================================================================
         const firebaseConfig = {
-  apiKey: "AIzaSyCB5JdfI2BUlM_DNrrWxU89yk-UVLaI-Po",
-  authDomain: "anpac-3c5ad.firebaseapp.com",
-  projectId: "anpac-3c5ad",
-  storageBucket: "anpac-3c5ad.firebasestorage.app",
-  messagingSenderId: "864836597053",
-  appId: "1:864836597053:web:3ca1884796ae8c5accc154"
-};
+            apiKey: "AIzaSyCB5JdfI2BUlM_DNrrWxU89yk-UVLaI-Po",
+            authDomain: "anpac-3c5ad.firebaseapp.com",
+            projectId: "anpac-3c5ad",
+            storageBucket: "anpac-3c5ad.firebasestorage.app",
+            messagingSenderId: "864836597053",
+            appId: "1:864836597053:web:3ca1884796ae8c5accc154"
+        };
 
         // --- Variabel Global Aplikasi ---
         let db;
@@ -2182,7 +2182,7 @@
         // FUNGSI LAINNYA
         // ========================
 
-        // Fungsi Kunci Sandi
+        // Fungsi Kunci Sandi - PERBAIKAN
         function checkURLReset() {
             const urlParams = new URLSearchParams(window.location.search);
             const reset = urlParams.get('reset');
@@ -2198,6 +2198,17 @@
             const storedHash = localStorage.getItem(PASSWORD_HASH_KEY);
             if (!storedHash) {
                 console.log("Belum ada hash. Menunggu login pertama.");
+                lockScreen.classList.remove('hidden');
+                appContent.classList.add('hidden');
+            } else {
+                // Auto unlock jika sudah ada hash yang valid
+                const correctHash = sha256(correctPassword);
+                if (storedHash === correctHash) {
+                    unlockApp();
+                } else {
+                    lockScreen.classList.remove('hidden');
+                    appContent.classList.add('hidden');
+                }
             }
         }
         
@@ -2207,7 +2218,14 @@
             const storedHash = localStorage.getItem(PASSWORD_HASH_KEY);
             const correctHash = sha256(correctPassword);
 
+            if (!password) {
+                passwordError.textContent = 'Password tidak boleh kosong';
+                passwordError.classList.remove('hidden');
+                return;
+            }
+
             if (!storedHash) {
+                // First time login
                 if (password === correctPassword) {
                     localStorage.setItem(PASSWORD_HASH_KEY, correctHash);
                     unlockApp();
@@ -2215,6 +2233,7 @@
                     triggerLoginError();
                 }
             } else {
+                // Subsequent logins
                 const inputHash = sha256(password);
                 if (inputHash === correctHash) {
                     if (storedHash !== correctHash) {
@@ -2228,6 +2247,7 @@
         }
 
         function triggerLoginError() {
+            passwordError.textContent = 'Kata sandi salah';
             passwordError.classList.remove('hidden');
             const lockFormContainer = lockForm.parentElement;
             lockFormContainer.classList.add('shake');
@@ -2240,6 +2260,8 @@
         function unlockApp() {
             lockScreen.classList.add('hidden');
             appContent.classList.remove('hidden');
+            passwordError.classList.add('hidden');
+            passwordInput.value = '';
             initializeAppService();
         }
 
@@ -2739,7 +2761,7 @@
                     await addDoc(customersCollection, {
                         ...customerData,
                         tunggakan: 0,
-                        tagihanBulanIni: harga,
+                        tagihanBulanIni: harga, // FIX: Set tagihan bulan ini dengan harga paket
                         createdAt: new Date().toISOString()
                     });
                     showInfoModal('Pelanggan baru berhasil ditambahkan!');
@@ -2981,96 +3003,90 @@
             toggleModal('kebab-menu-modal', false);
         }
 
-        // Import data dari Excel
- function importExcel() {
-        const fileInput = document.getElementById('excelFile');
-        const file = fileInput.files[0];
-        
-        if (!file) {
-            showInfoModal('Silakan pilih file Excel terlebih dahulu.', 'error');
-            return;
-        }
-
-        const reader = new FileReader();
-
-        reader.onload = async (event) => {
-            loadingOverlay.style.display = 'flex';
-            toggleModal('importModal', false);
-
-            try {
-                const data = new Uint8Array(event.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const sheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[sheetName];
-                const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-                if (json.length < 2) {
-                    showInfoModal('File Excel kosong atau tidak valid.', 'error');
-                    return;
-                }
-
-                const headers = json[0].map(h => (h || '').toString().toLowerCase());
-                const requiredHeaders = ['nama', 'paket', 'harga', 'no hp', 'alamat'];
-                
-                const colIndex = {};
-                requiredHeaders.forEach(rh => {
-                    colIndex[rh] = headers.indexOf(rh);
-                });
-
-                if (colIndex['nama'] === -1 || colIndex['harga'] === -1) {
-                    showInfoModal('Format Excel salah. Pastikan ada kolom NAMA dan HARGA.', 'error');
-                    return;
-                }
-
-                json.shift(); 
-                
-                const batch = writeBatch(db);
-                let importCount = 0;
-                
-                json.forEach(row => {
-                    const nama = row[colIndex['nama']];
-                    const harga = row[colIndex['harga']];
-
-                    if (nama && harga) {
-                        const hargaNum = parseFloat(harga) || 0;
-                        const newCustomer = {
-                            nama: (nama || '').toString(),
-                            paket: colIndex['paket'] !== -1 ? (row[colIndex['paket']] || '').toString() : '',
-                            harga: hargaNum,
-                            noHp: colIndex['no hp'] !== -1 ? (row[colIndex['no hp']] || '').toString() : '',
-                            alamat: colIndex['alamat'] !== -1 ? (row[colIndex['alamat']] || '').toString() : '',
-                            // PERBAIKAN: Set status awal sebagai BELUM BAYAR
-                            tunggakan: hargaNum,        // Langsung ada tunggakan
-                            tagihanBulanIni: 0,         // Belum ada tagihan bulan ini
-                            createdAt: new Date().toISOString()
-                        };
-                        
-                        const docRef = doc(customersCollection);
-                        batch.set(docRef, newCustomer);
-                        importCount++;
-                    }
-                });
-
-                await batch.commit();
-                showInfoModal(`${importCount} pelanggan berhasil diimpor dengan status BELUM BAYAR!`);
-
-            } catch (error) {
-                console.error("Error batch importing data:", error);
-                showInfoModal('Gagal mengimpor data. Cek format file.', 'error');
-            } finally {
-                loadingOverlay.style.display = 'none';
+        // Import data dari Excel - PERBAIKAN BESAR
+        function importExcel() {
+            const fileInput = document.getElementById('excelFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showInfoModal('Silakan pilih file Excel terlebih dahulu.', 'error');
+                return;
             }
-        };
-        
-        reader.onerror = () => {
-            showInfoModal('Gagal membaca file.', 'error');
-            loadingOverlay.style.display = 'none';
-        };
 
-        reader.readAsArrayBuffer(file);
-    }
+            const reader = new FileReader();
 
-    // ... kode lainnya tetap sama ...
+            reader.onload = async (event) => {
+                loadingOverlay.style.display = 'flex';
+                toggleModal('importModal', false);
+
+                try {
+                    const data = new Uint8Array(event.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    if (json.length < 2) {
+                        showInfoModal('File Excel kosong atau tidak valid.', 'error');
+                        return;
+                    }
+
+                    const headers = json[0].map(h => (h || '').toString().toLowerCase());
+                    const requiredHeaders = ['nama', 'paket', 'harga', 'no hp', 'alamat'];
+                    
+                    const colIndex = {};
+                    requiredHeaders.forEach(rh => {
+                        colIndex[rh] = headers.indexOf(rh);
+                    });
+
+                    if (colIndex['nama'] === -1 || colIndex['harga'] === -1) {
+                        showInfoModal('Format Excel salah. Pastikan ada kolom NAMA dan HARGA.', 'error');
+                        return;
+                    }
+
+                    json.shift(); 
+                    
+                    const batch = writeBatch(db);
+                    let importCount = 0;
+                    
+                    json.forEach(row => {
+                        const nama = row[colIndex['nama']];
+                        const harga = row[colIndex['harga']];
+
+                        if (nama && harga) {
+                            const hargaNum = parseFloat(harga) || 0;
+                            const newCustomer = {
+                                nama: (nama || '').toString(),
+                                paket: colIndex['paket'] !== -1 ? (row[colIndex['paket']] || '').toString() : '',
+                                harga: hargaNum,
+                                noHp: colIndex['no hp'] !== -1 ? (row[colIndex['no hp']] || '').toString() : '',
+                                alamat: colIndex['alamat'] !== -1 ? (row[colIndex['alamat']] || '').toString() : '',
+                                // PERBAIKAN: Set status awal sebagai BELUM BAYAR dengan benar
+                                tunggakan: 0,                    // Tidak ada tunggakan awal
+                                tagihanBulanIni: hargaNum,       // Tagihan bulan ini = harga paket
+                                createdAt: new Date().toISOString()
+                            };
+                            
+                            const docRef = doc(customersCollection);
+                            batch.set(docRef, newCustomer);
+                            importCount++;
+                        }
+                    });
+
+                    await batch.commit();
+                    showInfoModal(`${importCount} pelanggan berhasil diimpor dengan status BELUM BAYAR!`);
+
+                } catch (error) {
+                    console.error("Error batch importing data:", error);
+                    showInfoModal('Gagal mengimpor data. Cek format file.', 'error');
+                } finally {
+                    loadingOverlay.style.display = 'none';
+                }
+            };
+            
+            reader.onerror = () => {
+                showInfoModal('Gagal membaca file.', 'error');
+                loadingOverlay.style.display = 'none';
             };
 
             reader.readAsArrayBuffer(file);
