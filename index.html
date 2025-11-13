@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ANPAC Net</title>
+    <title>ANPAC Net Billing</title>
     <!-- Memuat Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Memuat library SheetJS untuk membaca file Excel -->
@@ -556,27 +556,21 @@
             height: 300px;
             width: 100%;
         }
-        
-        /* PERBAIKAN TAB FILTER DI HP */
+
+        /* PERBAIKAN UNTUK TAB FILTER DI MOBILE */
         #filter-nav {
             padding-top: 10px;
             padding-bottom: 10px;
-            overflow-x: auto;
-            white-space: nowrap;
-            -webkit-overflow-scrolling: touch;
         }
-        
-        #filter-nav::-webkit-scrollbar {
-            height: 4px;
+
+        /* PERBAIKAN UNTUK TOMBOL DELETE DI TABEL */
+        .btn-delete-transaksi {
+            transition: all 0.2s ease;
         }
-        
-        #filter-nav::-webkit-scrollbar-thumb {
-            background-color: #cbd5e1;
-            border-radius: 2px;
-        }
-        
-        body.dark #filter-nav::-webkit-scrollbar-thumb {
-            background-color: #475569;
+
+        .btn-delete-transaksi:hover {
+            transform: scale(1.1);
+            color: #EF4444 !important;
         }
     </style>
 </head>
@@ -1512,45 +1506,6 @@
         </div>
     </div>
     
-    <!-- Modal Hapus Transaksi -->
-    <div id="deletePaymentModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 modal-backdrop items-center justify-center z-50 hidden">
-        <div class="modal-content macos-modal w-full max-w-md m-4 opacity-0 transform scale-95">
-            <div class="p-6">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                        <!-- macOS Warning Icon -->
-                        <svg class="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
-                            <line x1="12" y1="9" x2="12" y2="13"/>
-                            <line x1="12" y1="17" x2="12.01" y2="17"/>
-                        </svg>
-                    </div>
-                    <div class="ml-4">
-                        <h3 class="text-xl font-semibold text-gray-900">Hapus Transaksi</h3>
-                        <p class="text-sm text-gray-600 mt-1">Anda yakin ingin menghapus transaksi ini? Aksi ini akan mengembalikan status pelanggan menjadi belum bayar.</p>
-                    </div>
-                </div>
-                <input type="hidden" id="deletePaymentId">
-                <input type="hidden" id="deletePaymentCustomerId">
-                <input type="hidden" id="deletePaymentAmount">
-                <div class="flex justify-end space-x-3 mt-6">
-                    <button type="button" class="macos-button px-6 py-3 text-gray-700 rounded-lg font-medium" data-modal="deletePaymentModal">
-                        Batal
-                    </button>
-                    <button type="button" id="btn-konfirmasi-hapus-payment" class="px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
-                        <!-- macOS Trash Icon -->
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 inline mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M3 6h18"/>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
-                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                        </svg>
-                        Ya, Hapus
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
     <!-- Info Modal (Notifikasi) -->
     <div id="infoModal" class="fixed top-5 left-1/2 -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-[99] hidden opacity-0 transition-all duration-300">
         <span id="infoMessage"></span>
@@ -1586,13 +1541,13 @@
         // Konfigurasi Firebase
         // =========================================================================
         const firebaseConfig = {
-            apiKey: "AIzaSyCB5JdfI2BUlM_DNrrWxU89yk-UVLaI-Po",
-            authDomain: "anpac-3c5ad.firebaseapp.com",
-            projectId: "anpac-3c5ad",
-            storageBucket: "anpac-3c5ad.firebasestorage.app",
-            messagingSenderId: "864836597053",
-            appId: "1:864836597053:web:3ca1884796ae8c5accc154"
-        };
+    apiKey: "AIzaSyCB5JdfI2BUlM_DNrrWxU89yk-UVLaI-Po",
+    authDomain: "anpac-3c5ad.firebaseapp.com",
+    projectId: "anpac-3c5ad",
+    storageBucket: "anpac-3c5ad.firebasestorage.app",
+    messagingSenderId: "864836597053",
+    appId: "1:864836597053:web:3ca1884796ae8c5accc154"
+};
 
         // --- Variabel Global Aplikasi ---
         let db;
@@ -1718,8 +1673,11 @@
                 let totalPendapatan = 0;
                 
                 paymentsSnapshot.forEach(doc => {
-                    const payment = { id: doc.id, ...doc.data() };
-                    paymentsData.push(payment);
+                    const payment = doc.data();
+                    paymentsData.push({
+                        id: doc.id,
+                        ...payment
+                    });
                     totalPendapatan += payment.jumlahBayar;
                 });
                 
@@ -1807,11 +1765,8 @@
                         ${formatRupiah(payment.jumlahBayar)}
                     </td>
                     <td class="py-3 px-4 text-sm text-center">
-                        <button class="btn-delete-payment text-red-500 hover:text-red-700" 
-                                data-id="${payment.id}"
-                                data-customer-id="${payment.customerId}"
-                                data-amount="${payment.jumlahBayar}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <button class="btn-delete-transaksi p-1 text-gray-400 hover:text-red-600" data-id="${payment.id}" data-customer-id="${payment.customerId}" data-jumlah="${payment.jumlahBayar}" title="Hapus Transaksi">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
                                 <path d="M3 6h18"/>
                                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
                                 <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -1893,44 +1848,15 @@
             container.innerHTML = chartHTML;
         }
 
-        // Fungsi untuk mendapatkan nama periode untuk file dan judul
-        function getPeriodName(period, startDate, endDate) {
-            switch(period) {
-                case 'bulan-ini':
-                    const bulanIni = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
-                    return `Bulan ${bulanIni}`;
-                case 'bulan-lalu':
-                    const bulanLalu = new Date();
-                    bulanLalu.setMonth(bulanLalu.getMonth() - 1);
-                    return `Bulan ${bulanLalu.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`;
-                case '3-bulan':
-                    const tigaBulanAwal = new Date();
-                    tigaBulanAwal.setMonth(tigaBulanAwal.getMonth() - 3);
-                    const tigaBulanAkhir = new Date();
-                    return `Periode ${tigaBulanAwal.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })} - ${tigaBulanAkhir.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`;
-                case '6-bulan':
-                    const enamBulanAwal = new Date();
-                    enamBulanAwal.setMonth(enamBulanAwal.getMonth() - 6);
-                    const enamBulanAkhir = new Date();
-                    return `Periode ${enamBulanAwal.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })} - ${enamBulanAkhir.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`;
-                case 'tahun-ini':
-                    const tahunIni = new Date().getFullYear();
-                    return `Tahun ${tahunIni}`;
-                case 'custom':
-                    const start = new Date(startDate).toLocaleDateString('id-ID');
-                    const end = new Date(endDate).toLocaleDateString('id-ID');
-                    return `Periode ${start} - ${end}`;
-                default:
-                    return new Date().toLocaleDateString('id-ID');
-            }
-        }
-
         // Export laporan ke CSV
         function exportReportToCSV() {
             if (!currentReportData || currentReportData.payments.length === 0) {
                 showInfoModal('Tidak ada data untuk diexport', 'error');
                 return;
             }
+            
+            // Generate nama file berdasarkan periode
+            const filename = generateReportFilename(currentReportData.period, currentReportData.startDate, currentReportData.endDate) + '.csv';
             
             // Header CSV
             let csv = 'Tanggal,Pelanggan,Jenis Bayar,Jumlah\n';
@@ -1945,11 +1871,6 @@
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            
-            // Generate filename berdasarkan periode
-            const periodName = getPeriodName(currentReportData.period, currentReportData.startDate, currentReportData.endDate);
-            const filename = `laporan-${periodName.toLowerCase().replace(/ /g, '-')}.csv`;
-            
             a.download = filename;
             document.body.appendChild(a);
             a.click();
@@ -1970,16 +1891,18 @@
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
                 
-                // Judul berdasarkan periode
-                const periodName = getPeriodName(currentReportData.period, currentReportData.startDate, currentReportData.endDate);
+                // Generate nama file dan judul berdasarkan periode
+                const filename = generateReportFilename(currentReportData.period, currentReportData.startDate, currentReportData.endDate) + '.pdf';
+                const reportTitle = generateReportTitle(currentReportData.period, currentReportData.startDate, currentReportData.endDate);
                 
                 // Judul
                 doc.setFontSize(20);
-                doc.text(`LAPORAN KEUANGAN ${periodName.toUpperCase()}`, 105, 15, { align: 'center' });
+                doc.text(reportTitle, 105, 15, { align: 'center' });
                 
                 // Periode
                 doc.setFontSize(12);
-                doc.text(`Periode: ${periodName}`, 14, 25);
+                let periodText = 'Periode: ' + generatePeriodText(currentReportData.period, currentReportData.startDate, currentReportData.endDate);
+                doc.text(periodText, 14, 25);
                 
                 // Tanggal generate
                 doc.text(`Dibuat: ${new Date().toLocaleDateString('id-ID')}`, 14, 32);
@@ -2016,9 +1939,6 @@
                     headStyles: { fillColor: [59, 130, 246] }
                 });
                 
-                // Generate filename
-                const filename = `laporan-${periodName.toLowerCase().replace(/ /g, '-')}.pdf`;
-                
                 // Save PDF
                 doc.save(filename);
                 showInfoModal('Laporan berhasil diexport ke PDF!');
@@ -2026,6 +1946,158 @@
             } catch (error) {
                 console.error('Error exporting to PDF:', error);
                 showInfoModal('Gagal export ke PDF', 'error');
+            }
+        }
+
+        // Fungsi untuk generate nama file laporan
+        function generateReportFilename(period, startDate, endDate) {
+            let filename = 'laporan-';
+            
+            switch(period) {
+                case 'bulan-ini':
+                    const currentMonth = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+                    filename += currentMonth.toLowerCase().replace(' ', '-');
+                    break;
+                case 'bulan-lalu':
+                    const lastMonth = new Date();
+                    lastMonth.setMonth(lastMonth.getMonth() - 1);
+                    filename += lastMonth.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }).toLowerCase().replace(' ', '-');
+                    break;
+                case '3-bulan':
+                    const threeMonthsAgo = new Date();
+                    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+                    const startMonth = threeMonthsAgo.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+                    const endMonth = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+                    filename += `${startMonth.toLowerCase().replace(' ', '-')}-sampai-${endMonth.toLowerCase().replace(' ', '-')}`;
+                    break;
+                case '6-bulan':
+                    const sixMonthsAgo = new Date();
+                    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+                    const startMonth6 = sixMonthsAgo.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+                    const endMonth6 = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+                    filename += `${startMonth6.toLowerCase().replace(' ', '-')}-sampai-${endMonth6.toLowerCase().replace(' ', '-')}`;
+                    break;
+                case 'tahun-ini':
+                    const currentYear = new Date().getFullYear();
+                    filename += `tahun-${currentYear}`;
+                    break;
+                case 'custom':
+                    const start = new Date(startDate).toISOString().split('T')[0];
+                    const end = new Date(endDate).toISOString().split('T')[0];
+                    filename += `${start}-sampai-${end}`;
+                    break;
+                default:
+                    filename += new Date().toISOString().split('T')[0];
+            }
+            
+            return filename;
+        }
+
+        // Fungsi untuk generate judul laporan
+        function generateReportTitle(period, startDate, endDate) {
+            let title = 'LAPORAN KEUANGAN - ';
+            
+            switch(period) {
+                case 'bulan-ini':
+                    const currentMonth = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+                    title += currentMonth.toUpperCase();
+                    break;
+                case 'bulan-lalu':
+                    const lastMonth = new Date();
+                    lastMonth.setMonth(lastMonth.getMonth() - 1);
+                    title += lastMonth.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }).toUpperCase();
+                    break;
+                case '3-bulan':
+                    const threeMonthsAgo = new Date();
+                    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+                    const startMonth = threeMonthsAgo.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+                    const endMonth = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+                    title += `${startMonth.toUpperCase()} - ${endMonth.toUpperCase()}`;
+                    break;
+                case '6-bulan':
+                    const sixMonthsAgo = new Date();
+                    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+                    const startMonth6 = sixMonthsAgo.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+                    const endMonth6 = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+                    title += `${startMonth6.toUpperCase()} - ${endMonth6.toUpperCase()}`;
+                    break;
+                case 'tahun-ini':
+                    const currentYear = new Date().getFullYear();
+                    title += `TAHUN ${currentYear}`;
+                    break;
+                case 'custom':
+                    const start = new Date(startDate).toLocaleDateString('id-ID');
+                    const end = new Date(endDate).toLocaleDateString('id-ID');
+                    title += `${start} - ${end}`;
+                    break;
+                default:
+                    title += new Date().toLocaleDateString('id-ID').toUpperCase();
+            }
+            
+            return title;
+        }
+
+        // Fungsi untuk generate teks periode
+        function generatePeriodText(period, startDate, endDate) {
+            switch(period) {
+                case 'bulan-ini':
+                    return new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+                case 'bulan-lalu':
+                    const lastMonth = new Date();
+                    lastMonth.setMonth(lastMonth.getMonth() - 1);
+                    return lastMonth.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+                case '3-bulan':
+                    const threeMonthsAgo = new Date();
+                    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+                    const startMonth = threeMonthsAgo.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+                    const endMonth = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+                    return `${startMonth} - ${endMonth}`;
+                case '6-bulan':
+                    const sixMonthsAgo = new Date();
+                    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+                    const startMonth6 = sixMonthsAgo.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+                    const endMonth6 = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+                    return `${startMonth6} - ${endMonth6}`;
+                case 'tahun-ini':
+                    return `Tahun ${new Date().getFullYear()}`;
+                case 'custom':
+                    const start = new Date(startDate).toLocaleDateString('id-ID');
+                    const end = new Date(endDate).toLocaleDateString('id-ID');
+                    return `${start} - ${end}`;
+                default:
+                    return new Date().toLocaleDateString('id-ID');
+            }
+        }
+
+        // ========================
+        // FUNGSI DELETE TRANSAKSI
+        // ========================
+
+        // Fungsi untuk menghapus transaksi
+        async function deleteTransaksi(transaksiId, customerId, jumlahBayar) {
+            try {
+                // Hapus transaksi dari koleksi payments
+                await deleteDoc(doc(paymentsCollection, transaksiId));
+                
+                // Update status pelanggan - tambahkan kembali jumlah bayar ke tunggakan
+                const customerRef = doc(customersCollection, customerId);
+                const customerSnap = await getDoc(customerRef);
+                const customerData = customerSnap.data();
+                
+                const tunggakanBaru = (customerData.tunggakan || 0) + jumlahBayar;
+                
+                await updateDoc(customerRef, {
+                    tunggakan: tunggakanBaru
+                });
+                
+                showInfoModal('Transaksi berhasil dihapus dan status pelanggan diperbarui!');
+                
+                // Refresh laporan
+                generateReport();
+                
+            } catch (error) {
+                console.error('Error deleting transaction:', error);
+                showInfoModal('Gagal menghapus transaksi.', 'error');
             }
         }
 
@@ -2182,7 +2254,7 @@
         // FUNGSI LAINNYA
         // ========================
 
-        // Fungsi Kunci Sandi - PERBAIKAN
+        // Fungsi Kunci Sandi
         function checkURLReset() {
             const urlParams = new URLSearchParams(window.location.search);
             const reset = urlParams.get('reset');
@@ -2198,17 +2270,6 @@
             const storedHash = localStorage.getItem(PASSWORD_HASH_KEY);
             if (!storedHash) {
                 console.log("Belum ada hash. Menunggu login pertama.");
-                lockScreen.classList.remove('hidden');
-                appContent.classList.add('hidden');
-            } else {
-                // Auto unlock jika sudah ada hash yang valid
-                const correctHash = sha256(correctPassword);
-                if (storedHash === correctHash) {
-                    unlockApp();
-                } else {
-                    lockScreen.classList.remove('hidden');
-                    appContent.classList.add('hidden');
-                }
             }
         }
         
@@ -2218,14 +2279,7 @@
             const storedHash = localStorage.getItem(PASSWORD_HASH_KEY);
             const correctHash = sha256(correctPassword);
 
-            if (!password) {
-                passwordError.textContent = 'Password tidak boleh kosong';
-                passwordError.classList.remove('hidden');
-                return;
-            }
-
             if (!storedHash) {
-                // First time login
                 if (password === correctPassword) {
                     localStorage.setItem(PASSWORD_HASH_KEY, correctHash);
                     unlockApp();
@@ -2233,7 +2287,6 @@
                     triggerLoginError();
                 }
             } else {
-                // Subsequent logins
                 const inputHash = sha256(password);
                 if (inputHash === correctHash) {
                     if (storedHash !== correctHash) {
@@ -2247,7 +2300,6 @@
         }
 
         function triggerLoginError() {
-            passwordError.textContent = 'Kata sandi salah';
             passwordError.classList.remove('hidden');
             const lockFormContainer = lockForm.parentElement;
             lockFormContainer.classList.add('shake');
@@ -2260,8 +2312,6 @@
         function unlockApp() {
             lockScreen.classList.add('hidden');
             appContent.classList.remove('hidden');
-            passwordError.classList.add('hidden');
-            passwordInput.value = '';
             initializeAppService();
         }
 
@@ -2761,7 +2811,7 @@
                     await addDoc(customersCollection, {
                         ...customerData,
                         tunggakan: 0,
-                        tagihanBulanIni: harga, // FIX: Set tagihan bulan ini dengan harga paket
+                        tagihanBulanIni: harga,
                         createdAt: new Date().toISOString()
                     });
                     showInfoModal('Pelanggan baru berhasil ditambahkan!');
@@ -3003,7 +3053,7 @@
             toggleModal('kebab-menu-modal', false);
         }
 
-        // Import data dari Excel - PERBAIKAN BESAR
+        // Import data dari Excel
         function importExcel() {
             const fileInput = document.getElementById('excelFile');
             const file = fileInput.files[0];
@@ -3061,9 +3111,8 @@
                                 harga: hargaNum,
                                 noHp: colIndex['no hp'] !== -1 ? (row[colIndex['no hp']] || '').toString() : '',
                                 alamat: colIndex['alamat'] !== -1 ? (row[colIndex['alamat']] || '').toString() : '',
-                                // PERBAIKAN: Set status awal sebagai BELUM BAYAR dengan benar
-                                tunggakan: 0,                    // Tidak ada tunggakan awal
-                                tagihanBulanIni: hargaNum,       // Tagihan bulan ini = harga paket
+                                tunggakan: 0,
+                                tagihanBulanIni: hargaNum,
                                 createdAt: new Date().toISOString()
                             };
                             
@@ -3074,7 +3123,7 @@
                     });
 
                     await batch.commit();
-                    showInfoModal(`${importCount} pelanggan berhasil diimpor dengan status BELUM BAYAR!`);
+                    showInfoModal(`${importCount} pelanggan berhasil diimpor!`);
 
                 } catch (error) {
                     console.error("Error batch importing data:", error);
@@ -3142,47 +3191,6 @@
             }
         }
 
-        // Tampilkan modal hapus transaksi
-        function showDeletePaymentModal(paymentId, customerId, amount) {
-            document.getElementById('deletePaymentId').value = paymentId;
-            document.getElementById('deletePaymentCustomerId').value = customerId;
-            document.getElementById('deletePaymentAmount').value = amount;
-            toggleModal('deletePaymentModal', true);
-        }
-
-        // Hapus transaksi dan kembalikan status pelanggan
-        async function deletePayment() {
-            const paymentId = document.getElementById('deletePaymentId').value;
-            const customerId = document.getElementById('deletePaymentCustomerId').value;
-            const amount = parseFloat(document.getElementById('deletePaymentAmount').value);
-
-            try {
-                // Hapus transaksi dari payments collection
-                await deleteDoc(doc(paymentsCollection, paymentId));
-                
-                // Kembalikan status pelanggan menjadi belum bayar
-                const customerRef = doc(customersCollection, customerId);
-                const customer = customersData.find(c => c.id === customerId);
-                
-                if (customer) {
-                    const tunggakanBaru = (customer.tunggakan || 0) + amount;
-                    await updateDoc(customerRef, {
-                        tunggakan: tunggakanBaru
-                    });
-                }
-                
-                showInfoModal('Transaksi berhasil dihapus dan status pelanggan dikembalikan!');
-                toggleModal('deletePaymentModal', false);
-                
-                // Regenerate laporan untuk memperbarui tampilan
-                generateReport();
-                
-            } catch (error) {
-                console.error("Error deleting payment:", error);
-                showInfoModal('Gagal menghapus transaksi.', 'error');
-            }
-        }
-
         // Fungsi untuk navigasi antar tab
         function navigateToTab(pageId, filter = null) {
             const navButton = document.querySelector(`.btn-nav[data-page="${pageId}"]`);
@@ -3209,7 +3217,6 @@
             document.getElementById('generateFirstReport').addEventListener('click', generateReport);
             document.getElementById('exportReport').addEventListener('click', exportReportToCSV);
             document.getElementById('exportReportPDF').addEventListener('click', exportReportToPDF);
-            document.getElementById('btn-konfirmasi-hapus-payment').addEventListener('click', deletePayment);
 
             // Setup report filters
             setupReportFilters();
@@ -3414,16 +3421,18 @@
                 }
             });
 
-            // Event Listener untuk tombol delete transaksi di laporan
+            // --- Event Listener untuk Delete Transaksi di Laporan ---
             document.getElementById('reportTransactions').addEventListener('click', (e) => {
-                const target = e.target.closest('.btn-delete-payment');
+                const target = e.target.closest('.btn-delete-transaksi');
                 if (!target) return;
 
-                const paymentId = target.dataset.id;
+                const transaksiId = target.dataset.id;
                 const customerId = target.dataset.customerId;
-                const amount = parseFloat(target.dataset.amount);
-                
-                showDeletePaymentModal(paymentId, customerId, amount);
+                const jumlahBayar = parseFloat(target.dataset.jumlah) || 0;
+
+                if (confirm('Apakah Anda yakin ingin menghapus transaksi ini? Status pelanggan akan dikembalikan menjadi belum bayar.')) {
+                    deleteTransaksi(transaksiId, customerId, jumlahBayar);
+                }
             });
 
             // --- Dark Mode Toggle ---
