@@ -2982,7 +2982,7 @@
         }
 
         // Import data dari Excel
-        function importExcel() {
+ function importExcel() {
         const fileInput = document.getElementById('excelFile');
         const file = fileInput.files[0];
         
@@ -3071,11 +3071,6 @@
     }
 
     // ... kode lainnya tetap sama ...
-            };
-            
-            reader.onerror = () => {
-                showInfoModal('Gagal membaca file.', 'error');
-                loadingOverlay.style.display = 'none';
             };
 
             reader.readAsArrayBuffer(file);
