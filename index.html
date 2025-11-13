@@ -2983,82 +2983,94 @@
 
         // Import data dari Excel
         function importExcel() {
-            const fileInput = document.getElementById('excelFile');
-            const file = fileInput.files[0];
-            
-            if (!file) {
-                showInfoModal('Silakan pilih file Excel terlebih dahulu.', 'error');
-                return;
-            }
+        const fileInput = document.getElementById('excelFile');
+        const file = fileInput.files[0];
+        
+        if (!file) {
+            showInfoModal('Silakan pilih file Excel terlebih dahulu.', 'error');
+            return;
+        }
 
-            const reader = new FileReader();
+        const reader = new FileReader();
 
-            reader.onload = async (event) => {
-                loadingOverlay.style.display = 'flex';
-                toggleModal('importModal', false);
+        reader.onload = async (event) => {
+            loadingOverlay.style.display = 'flex';
+            toggleModal('importModal', false);
 
-                try {
-                    const data = new Uint8Array(event.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const sheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[sheetName];
-                    const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            try {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                    if (json.length < 2) {
-                        showInfoModal('File Excel kosong atau tidak valid.', 'error');
-                        return;
-                    }
-
-                    const headers = json[0].map(h => (h || '').toString().toLowerCase());
-                    const requiredHeaders = ['nama', 'paket', 'harga', 'no hp', 'alamat'];
-                    
-                    const colIndex = {};
-                    requiredHeaders.forEach(rh => {
-                        colIndex[rh] = headers.indexOf(rh);
-                    });
-
-                    if (colIndex['nama'] === -1 || colIndex['harga'] === -1) {
-                        showInfoModal('Format Excel salah. Pastikan ada kolom NAMA dan HARGA.', 'error');
-                        return;
-                    }
-
-                    json.shift(); 
-                    
-                    const batch = writeBatch(db);
-                    let importCount = 0;
-                    
-                    json.forEach(row => {
-                        const nama = row[colIndex['nama']];
-                        const harga = row[colIndex['harga']];
-
-                        if (nama && harga) {
-                            const hargaNum = parseFloat(harga) || 0;
-                            const newCustomer = {
-                                nama: (nama || '').toString(),
-                                paket: colIndex['paket'] !== -1 ? (row[colIndex['paket']] || '').toString() : '',
-                                harga: hargaNum,
-                                noHp: colIndex['no hp'] !== -1 ? (row[colIndex['no hp']] || '').toString() : '',
-                                alamat: colIndex['alamat'] !== -1 ? (row[colIndex['alamat']] || '').toString() : '',
-                                tunggakan: 0,
-                                tagihanBulanIni: hargaNum,
-                                createdAt: new Date().toISOString()
-                            };
-                            
-                            const docRef = doc(customersCollection);
-                            batch.set(docRef, newCustomer);
-                            importCount++;
-                        }
-                    });
-
-                    await batch.commit();
-                    showInfoModal(`${importCount} pelanggan berhasil diimpor!`);
-
-                } catch (error) {
-                    console.error("Error batch importing data:", error);
-                    showInfoModal('Gagal mengimpor data. Cek format file.', 'error');
-                } finally {
-                    loadingOverlay.style.display = 'none';
+                if (json.length < 2) {
+                    showInfoModal('File Excel kosong atau tidak valid.', 'error');
+                    return;
                 }
+
+                const headers = json[0].map(h => (h || '').toString().toLowerCase());
+                const requiredHeaders = ['nama', 'paket', 'harga', 'no hp', 'alamat'];
+                
+                const colIndex = {};
+                requiredHeaders.forEach(rh => {
+                    colIndex[rh] = headers.indexOf(rh);
+                });
+
+                if (colIndex['nama'] === -1 || colIndex['harga'] === -1) {
+                    showInfoModal('Format Excel salah. Pastikan ada kolom NAMA dan HARGA.', 'error');
+                    return;
+                }
+
+                json.shift(); 
+                
+                const batch = writeBatch(db);
+                let importCount = 0;
+                
+                json.forEach(row => {
+                    const nama = row[colIndex['nama']];
+                    const harga = row[colIndex['harga']];
+
+                    if (nama && harga) {
+                        const hargaNum = parseFloat(harga) || 0;
+                        const newCustomer = {
+                            nama: (nama || '').toString(),
+                            paket: colIndex['paket'] !== -1 ? (row[colIndex['paket']] || '').toString() : '',
+                            harga: hargaNum,
+                            noHp: colIndex['no hp'] !== -1 ? (row[colIndex['no hp']] || '').toString() : '',
+                            alamat: colIndex['alamat'] !== -1 ? (row[colIndex['alamat']] || '').toString() : '',
+                            // PERBAIKAN: Set status awal sebagai BELUM BAYAR
+                            tunggakan: hargaNum,        // Langsung ada tunggakan
+                            tagihanBulanIni: 0,         // Belum ada tagihan bulan ini
+                            createdAt: new Date().toISOString()
+                        };
+                        
+                        const docRef = doc(customersCollection);
+                        batch.set(docRef, newCustomer);
+                        importCount++;
+                    }
+                });
+
+                await batch.commit();
+                showInfoModal(`${importCount} pelanggan berhasil diimpor dengan status BELUM BAYAR!`);
+
+            } catch (error) {
+                console.error("Error batch importing data:", error);
+                showInfoModal('Gagal mengimpor data. Cek format file.', 'error');
+            } finally {
+                loadingOverlay.style.display = 'none';
+            }
+        };
+        
+        reader.onerror = () => {
+            showInfoModal('Gagal membaca file.', 'error');
+            loadingOverlay.style.display = 'none';
+        };
+
+        reader.readAsArrayBuffer(file);
+    }
+
+    // ... kode lainnya tetap sama ...
             };
             
             reader.onerror = () => {
