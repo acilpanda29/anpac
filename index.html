@@ -3053,7 +3053,8 @@
             toggleModal('kebab-menu-modal', false);
         }
 
-        // Import data dari Excel
+        
+        // Import data dari Excel (FIXED)
         function importExcel() {
             const fileInput = document.getElementById('excelFile');
             const file = fileInput.files[0];
@@ -3113,6 +3114,7 @@
                                 alamat: colIndex['alamat'] !== -1 ? (row[colIndex['alamat']] || '').toString() : '',
                                 tunggakan: 0,
                                 tagihanBulanIni: hargaNum,
+                                status: "belum bayar",
                                 createdAt: new Date().toISOString()
                             };
                             
@@ -3123,7 +3125,7 @@
                     });
 
                     await batch.commit();
-                    showInfoModal(`${importCount} pelanggan berhasil diimpor!`);
+                    showInfoModal(`${importCount} pelanggan berhasil diimpor! Status awal: Belum Bayar.`);
 
                 } catch (error) {
                     console.error("Error batch importing data:", error);
@@ -3141,7 +3143,39 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // Buat tagihan untuk SEMUA pelanggan
+
+
+        // Buat tagihan untuk SEMUA pelanggan (FIXED)
+        async function generateTagihanSemua() {
+            toggleModal('kebab-menu-modal', false);
+            loadingOverlay.style.display = 'flex';
+
+            try {
+                const batch = writeBatch(db);
+                
+                customersData.forEach(customer => {
+                    const hargaPaket = customer.harga || 0;
+                    const tunggakanBaru = (customer.tunggakan || 0) + (customer.tagihanBulanIni || 0);
+                    const tagihanBulanIniBaru = hargaPaket;
+                    
+                    const docRef = doc(customersCollection, customer.id);
+                    batch.update(docRef, {
+                        tunggakan: tunggakanBaru,
+                        tagihanBulanIni: tagihanBulanIniBaru,
+                        status: "belum bayar"
+                    });
+                });
+
+                await batch.commit();
+                showInfoModal('Tagihan baru berhasil dibuat untuk semua pelanggan! Semua ditandai belum bayar.');
+            } catch (error) {
+                console.error("Error generating all bills:", error);
+                showInfoModal('Gagal membuat tagihan massal.', 'error');
+            } finally {
+                loadingOverlay.style.display = 'none';
+            }
+        }
+
         async function generateTagihanSemua() {
             toggleModal('kebab-menu-modal', false);
             loadingOverlay.style.display = 'flex';
