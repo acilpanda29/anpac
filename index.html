@@ -1,0 +1,3420 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANPAC Net</title>
+    <!-- Memuat Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Memuat library SheetJS untuk membaca file Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Library SHA-256 untuk hashing password -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha256/0.9.0/sha256.min.js"></script>
+    <!-- Library jsPDF untuk export PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    
+    <style>
+        /* Font family yang mirip macOS */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+            overscroll-behavior-y: none;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* ======================= */
+        /* DARK MODE UNTUK LAPORAN */
+        /* ======================= */
+
+        body.dark #page-laporan .text-gray-800,
+        body.dark #page-laporan .text-gray-900,
+        body.dark #page-laporan .text-gray-700 {
+            color: #f1f5f9 !important;
+        }
+
+        body.dark #page-laporan .text-gray-600,
+        body.dark #page-laporan .text-gray-500 {
+            color: #cbd5e1 !important;
+        }
+
+        body.dark #page-laporan table th {
+            color: #e2e8f0 !important;
+        }
+
+        body.dark #page-laporan table td {
+            color: #cbd5e1 !important;
+        }
+
+        body.dark #page-laporan .bg-gray-50 {
+            background-color: rgba(30, 41, 59, 0.5) !important;
+        }
+
+        body.dark #page-laporan .hover\:bg-gray-50:hover {
+            background-color: rgba(30, 41, 59, 0.7) !important;
+        }
+
+        body.dark #page-laporan .border-gray-100 {
+            border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        body.dark #page-laporan .border-gray-200 {
+            border-color: rgba(255, 255, 255, 0.2) !important;
+        }
+
+        /* QUICK FIX UNTUK SCROLL LAPORAN */
+        #page-laporan {
+            height: 100vh !important;
+            overflow-y: scroll !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
+
+        #page-laporan .container {
+            min-height: 100% !important;
+            padding-bottom: 100px !important;
+        }
+        
+        /* Tema Light (Default) */
+        body {
+            background: linear-gradient(135deg, #f0f4ff 0%, #e6eeff 100%);
+            color: #1e293b;
+        }
+        
+        /* Tema Dark */
+        body.dark {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #f1f5f9;
+        }
+
+        /* PERBAIKAN CEPAT UNTUK CHART DARK MODE */
+        body.dark #chartContainer * {
+            color: #e2e8f0 !important;
+        }
+
+        body.dark #chartContainer .bg-green-100 {
+            background-color: rgba(16, 185, 129, 0.2) !important;
+        }
+
+        body.dark #chartContainer .bg-green-800 {
+            background-color: #10b981 !important;
+        }
+
+        body.dark #chartContainer .bg-red-100 {
+            background-color: rgba(239, 68, 68, 0.2) !important;
+        }
+
+        body.dark #chartContainer .bg-red-800 {
+            background-color: #ef4444 !important;
+        }
+
+        /* Pastikan chart bars tetap berwarna */
+        body.dark #chartContainer .bg-green-400,
+        body.dark #chartContainer .bg-green-500 {
+            background-color: #10b981 !important;
+        }
+
+        body.dark #chartContainer .bg-red-400,
+        body.dark #chartContainer .bg-red-500 {
+            background-color: #ef4444 !important;
+        }
+        
+        /* Glassmorphism effect untuk card dan panel */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        body.dark .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Header dengan efek kaca */
+        .glass-header {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        body.dark .glass-header {
+            background: rgba(30, 41, 59, 0.8);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Bottom navigation dengan efek kaca */
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        body.dark .glass-nav {
+            background: rgba(30, 41, 59, 0.8);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Button dengan gaya macOS */
+        .macos-button {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+        }
+        
+        .macos-button:hover {
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        body.dark .macos-button {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        body.dark .macos-button:hover {
+            background: rgba(30, 41, 59, 0.9);
+        }
+        
+        /* Primary button dengan warna macOS blue */
+        .macos-primary {
+            background: linear-gradient(135deg, #007AFF 0%, #0056CC 100%);
+            color: white;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+        }
+        
+        .macos-primary:hover {
+            background: linear-gradient(135deg, #0056CC 0%, #0040A0 100%);
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.4);
+        }
+        
+        /* Input fields dengan gaya macOS */
+        .macos-input {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(5px);
+            transition: all 0.2s ease;
+        }
+        
+        .macos-input:focus {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: #007AFF;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+        }
+        
+        body.dark .macos-input {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #f1f5f9;
+        }
+        
+        body.dark .macos-input:focus {
+            background: rgba(30, 41, 59, 0.9);
+            border-color: #007AFF;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background-color: #007AFF;
+            border-radius: 10px;
+        }
+        
+        body.dark ::-webkit-scrollbar-thumb {
+            background-color: #60A5FA;
+        }
+        
+        /* Efek blur untuk modal backdrop */
+        .modal-backdrop {
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        
+        /* Transisi untuk modal */
+        .modal-content {
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        /* Garis batas status */
+        .status-border-lunas {
+            border-left: 4px solid #10B981;
+        }
+        
+        .status-border-tunggak {
+            border-left: 4px solid #EF4444;
+        }
+        
+        /* Loading spinner */
+        .loader {
+            border-top-color: #007AFF;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Menyembunyikan halaman/tab */
+        .page {
+            display: none;
+        }
+        
+        /* Menampilkan halaman/tab yang aktif */
+        .page.active {
+            display: block;
+        }
+        
+        /* Animasi Shake untuk error login */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+        
+        /* Floating Dark Mode Toggle */
+        #darkModeToggle {
+            position: fixed;
+            bottom: 100px;
+            left: 28px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 9999;
+        }
+        
+        #darkModeToggle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        body.dark #darkModeToggle {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        #darkModeToggle svg {
+            width: 24px;
+            height: 24px;
+            transition: all 0.3s ease;
+        }
+        
+        #darkModeToggle .sun {
+            color: #F59E0B;
+        }
+        
+        #darkModeToggle .moon {
+            color: #CBD5E1;
+        }
+        
+        /* Hide one icon based on theme */
+        body #darkModeToggle .moon,
+        body.dark #darkModeToggle .sun {
+            display: none;
+        }
+        
+        body #darkModeToggle .sun,
+        body.dark #darkModeToggle .moon {
+            display: block;
+        }
+        
+        /* Kebab menu dengan gaya macOS */
+        .macos-menu {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            border-radius: 12px;
+        }
+        
+        body.dark .macos-menu {
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Card hover effect */
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        body.dark .card-hover:hover {
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* macOS style modal */
+        .macos-modal {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            border-radius: 14px;
+        }
+        
+        body.dark .macos-modal {
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Tab dengan gaya macOS */
+        .macos-tab {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+        
+        .macos-tab.active {
+            border-bottom-color: #007AFF;
+            color: #007AFF;
+        }
+        
+        body.dark .macos-tab.active {
+            color: #60A5FA;
+            border-bottom-color: #60A5FA;
+        }
+        
+        /* Status indicators */
+        .status-lunas {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10B981;
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-tunggak {
+            background: rgba(239, 68, 68, 0.1);
+            color: #EF4444;
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* ======================= */
+        /* PERBAIKAN UNTUK DARK MODE */
+        /* ======================= */
+
+        /* Text colors untuk dark mode */
+        body.dark .text-gray-800,
+        body.dark .text-gray-900,
+        body.dark .text-gray-700 {
+            color: #f1f5f9 !important;
+        }
+
+        body.dark .text-gray-600,
+        body.dark .text-gray-500 {
+            color: #cbd5e1 !important;
+        }
+
+        /* Background colors untuk input dan form di dark mode */
+        body.dark .macos-input {
+            background: rgba(30, 41, 59, 0.8) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            color: #f1f5f9 !important;
+        }
+
+        body.dark .macos-input::placeholder {
+            color: #94a3b8 !important;
+        }
+
+        /* Modal text colors di dark mode */
+        body.dark .macos-modal,
+        body.dark .macos-modal h3,
+        body.dark .macos-modal p,
+        body.dark .macos-modal label,
+        body.dark .macos-modal span {
+            color: #f1f5f9 !important;
+        }
+
+        /* Kebab menu text di dark mode */
+        body.dark .macos-menu,
+        body.dark .macos-menu li button {
+            color: #f1f5f9 !important;
+        }
+
+        body.dark .macos-menu li button:hover {
+            background: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        /* Card content di dark mode */
+        body.dark .glass-card h3,
+        body.dark .glass-card p,
+        body.dark .glass-card span {
+            color: #f1f5f9 !important;
+        }
+
+        /* Status badges di dark mode */
+        body.dark .status-lunas {
+            background: rgba(16, 185, 129, 0.2) !important;
+            color: #10b981 !important;
+        }
+
+        body.dark .status-tunggak {
+            background: rgba(239, 68, 68, 0.2) !important;
+            color: #ef4444 !important;
+        }
+
+        /* Button text di dark mode */
+        body.dark .macos-button {
+            color: #f1f5f9 !important;
+        }
+
+        /* Header di dark mode */
+        body.dark .glass-header,
+        body.dark .glass-header h1,
+        body.dark .glass-header p {
+            color: #f1f5f9 !important;
+        }
+
+        /* Navigation di dark mode */
+        body.dark .glass-nav,
+        body.dark .btn-nav {
+            color: #cbd5e1 !important;
+        }
+
+        body.dark .btn-nav.text-blue-500 {
+            color: #60a5fa !important;
+        }
+
+        /* Search icon di dark mode */
+        body.dark .text-gray-400 {
+            color: #64748b !important;
+        }
+
+        /* Code blocks di dark mode */
+        body.dark code {
+            background: rgba(255, 255, 255, 0.1) !important;
+            color: #e2e8f0 !important;
+        }
+
+        /* Empty state di dark mode */
+        body.dark #empty-state h3,
+        body.dark #empty-state p {
+            color: #cbd5e1 !important;
+        }
+
+        /* Loading spinner di dark mode */
+        body.dark .loader {
+            border-top-color: #60a5fa !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        /* Payment modal amounts di dark mode */
+        body.dark #paymentTotal {
+            color: #60a5fa !important;
+        }
+
+        /* Prorata result di dark mode */
+        body.dark #prorataResult {
+            background: rgba(59, 130, 246, 0.1) !important;
+        }
+
+        body.dark #prorataResult p {
+            color: #e2e8f0 !important;
+        }
+
+        body.dark #prorataTotal {
+            color: #60a5fa !important;
+        }
+
+        /* Edit tunggakan button */
+        .btn-edit-tunggakan {
+            transition: all 0.2s ease;
+        }
+
+        .btn-edit-tunggakan:hover {
+            transform: scale(1.1);
+            color: #007AFF !important;
+        }
+
+        /* Chart container */
+        .chart-container {
+            height: 300px;
+            width: 100%;
+        }
+        
+        /* PERBAIKAN TAB FILTER DI HP */
+        #filter-nav {
+            padding-top: 10px;
+            padding-bottom: 10px;
+            overflow-x: auto;
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        #filter-nav::-webkit-scrollbar {
+            height: 4px;
+        }
+        
+        #filter-nav::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 2px;
+        }
+        
+        body.dark #filter-nav::-webkit-scrollbar-thumb {
+            background-color: #475569;
+        }
+    </style>
+</head>
+<body class="h-screen overflow-hidden flex flex-col">
+    <!-- ======================= -->
+    <!-- Layar Kunci Password    -->
+    <!-- ======================= -->
+    <div id="lockScreen" class="fixed inset-0 bg-gray-900 z-[100] flex items-center justify-center p-4">
+        <div class="macos-modal w-full max-w-sm p-8">
+            <!-- macOS Security Icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-16 h-16 mx-auto text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <h2 class="text-2xl font-bold text-center text-gray-800 mt-4">Akses Dibatasi</h2>
+            <p class="text-center text-gray-500 text-sm mt-1">Masukkan kata sandi untuk melanjutkan.</p>
+            
+            <form id="lockForm" class="mt-6">
+                <div>
+                    <label for="password" class="sr-only">Kata Sandi</label>
+                    <input type="password" id="password" class="macos-input mt-1 block w-full px-4 py-3 rounded-lg text-center" placeholder="••••••••" required>
+                </div>
+                <p id="passwordError" class="text-red-500 text-sm text-center mt-2 hidden">Kata sandi salah.</p>
+                <button type="submit" class="macos-primary w-full mt-4 px-6 py-3 rounded-lg font-medium">
+                    Masuk
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ======================= -->
+    <!-- Konten Aplikasi Utama   -->
+    <!-- ======================= -->
+    <div id="appContent" class="h-full flex flex-col hidden">
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="fixed inset-0 bg-white/80 backdrop-blur-sm flex justify-center items-center z-[99]">
+            <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div>
+        </div>
+
+        <!-- Header Bar -->
+        <header class="glass-header text-gray-800 p-4 sticky top-0 z-40">
+            <div class="container mx-auto max-w-5xl flex justify-between items-center">
+                <div>
+                    <h1 id="app-title-header" class="text-xl font-bold">ANPAC Net</h1>
+                    <p id="total-tagihan-header" class="text-sm text-gray-600">Total Tagihan: Rp 0</p>
+                </div>
+                <!-- Kebab Menu (Tiga Titik) -->
+                <button id="kebab-menu-button" class="p-2 rounded-full hover:bg-gray-200 focus:outline-none">
+                    <!-- macOS More Icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="1"/>
+                        <circle cx="12" cy="5" r="1"/>
+                        <circle cx="12" cy="19" r="1"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Kebab Menu Modal (Hidden) -->
+        <div id="kebab-menu-modal" class="hidden fixed top-16 right-4 macos-menu z-50 w-64">
+            <ul class="py-2">
+                <li>
+                    <button id="import-excel-btn-menu" class="flex items-center w-full px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg mx-2 my-1">
+                        <!-- macOS Import Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-3 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Import Excel
+                    </button>
+                </li>
+                <li>
+                    <button id="buat-tagihan-semua-btn-menu" class="flex items-center w-full px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg mx-2 my-1">
+                        <!-- macOS Clock Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-3 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        Buat Tagihan (Semua)
+                    </button>
+                </li>
+                <li>
+                    <button id="hapus-semua-btn-menu" class="flex items-center w-full px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg mx-2 my-1">
+                        <!-- macOS Trash Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-3 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 6h18"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                        Hapus Semua Data
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto pb-28">
+            <!-- ======================= -->
+            <!-- Page: Home (Analitik) -->
+            <!-- ======================= -->
+            <div id="page-home" class="page active">
+                <div class="container mx-auto max-w-5xl p-4">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Ringkasan Pembukuan</h2>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Card Total Tagihan -->
+                        <div class="glass-card p-6 rounded-xl card-hover">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 bg-blue-500 rounded-xl p-3">
+                                    <!-- macOS Money Icon -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="12" y1="1" x2="12" y2="23"/>
+                                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-gray-500 truncate">Total Tagihan Aktif</p>
+                                    <p id="analytic-total-tagihan" class="text-2xl font-bold text-gray-900">Rp 0</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card Total Pelanggan -->
+                        <div id="analytic-card-total" class="glass-card p-6 rounded-xl card-hover cursor-pointer">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 bg-blue-500 rounded-xl p-3">
+                                    <!-- macOS Person Icon -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                        <circle cx="12" cy="7" r="4"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-gray-500 truncate">Total Pelanggan</p>
+                                    <p id="analytic-total-pelanggan" class="text-2xl font-bold text-gray-900">0</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card Total Pendapatan Bulan Ini -->
+                        <div id="analytic-card-pendapatan" class="glass-card p-6 rounded-xl card-hover cursor-pointer">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 bg-green-500 rounded-xl p-3">
+                                    <!-- macOS Money Icon -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="12" y1="1" x2="12" y2="23"/>
+                                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-gray-500 truncate">Pendapatan Bulan Ini</p>
+                                    <p id="analytic-pendapatan-bulan-ini" class="text-2xl font-bold text-gray-900">Rp 0</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card Lunas -->
+                        <div class="glass-card p-6 rounded-xl card-hover">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 bg-green-500 rounded-xl p-3">
+                                    <!-- macOS Checkmark Icon -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                        <polyline points="22 4 12 14.01 9 11.01"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-gray-500 truncate">Pelanggan Lunas</p>
+                                    <p id="analytic-lunas" class="text-2xl font-bold text-gray-900">0</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card Belum Lunas -->
+                        <div id="analytic-card-belum-lunas" class="glass-card p-6 rounded-xl card-hover cursor-pointer">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 bg-red-500 rounded-xl p-3">
+                                    <!-- macOS Warning Icon -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                                        <line x1="12" y1="9" x2="12" y2="13"/>
+                                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-gray-500 truncate">Pelanggan Belum Bayar</p>
+                                    <p id="analytic-belum-lunas" class="text-2xl font-bold text-gray-900">0</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card Total Tunggakan -->
+                        <div id="analytic-card-tunggakan" class="glass-card p-6 rounded-xl card-hover cursor-pointer">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 bg-yellow-500 rounded-xl p-3">
+                                    <!-- macOS Warning Icon -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                                        <line x1="12" y1="9" x2="12" y2="13"/>
+                                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-gray-500 truncate">Total Tunggakan</p>
+                                    <p id="analytic-total-tunggakan" class="text-2xl font-bold text-gray-900">Rp 0</p>
+                                    <p id="analytic-count-tunggakan" class="text-sm text-gray-500">0 pelanggan</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Statistik Chart -->
+                    <div class="mt-8">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-semibold text-gray-800">Statistik Bulanan</h3>
+                            <select id="chartType" class="macos-input text-sm px-3 py-2 rounded-lg">
+                                <option value="pendapatan">Pendapatan</option>
+                                <option value="tunggakan">Tunggakan</option>
+                            </select>
+                        </div>
+                        <div class="glass-card p-6 rounded-xl">
+                            <div id="chartContainer" class="chart-container flex items-center justify-center">
+                                <p class="text-gray-500">Fitur statistik akan segera hadir</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ======================= -->
+            <!-- Page: Pelanggan -->
+            <!-- ======================= -->
+            <div id="page-pelanggan" class="page">
+                <div class="container mx-auto max-w-5xl p-4">
+                    <!-- Filter Tabs -->
+                    <div class="mb-4">
+                        <div class="sm:border-b sm:border-gray-200">
+                            <nav id="filter-nav" class="flex -mb-px space-x-4 sm:space-x-6 overflow-x-auto" aria-label="Tabs">
+                                <button data-filter="semua" class="tab-filter macos-tab flex items-center whitespace-nowrap py-3 px-1 font-medium text-sm active" aria-current="page">
+                                    Semua
+                                </button>
+                                <button data-filter="belum-bayar" class="tab-filter macos-tab flex items-center whitespace-nowrap py-3 px-1 font-medium text-sm text-gray-500 hover:text-gray-700">
+                                    Belum Bayar
+                                    <span id="count-belum-bayar" class="ml-2 hidden bg-red-100 text-red-600 py-0.5 px-2 rounded-full text-xs font-medium">0</span>
+                                </button>
+                                <button data-filter="ada-tunggakan" class="tab-filter macos-tab flex items-center whitespace-nowrap py-3 px-1 font-medium text-sm text-gray-500 hover:text-gray-700">
+                                    Ada Tunggakan
+                                    <span id="count-ada-tunggakan" class="ml-2 hidden bg-yellow-100 text-yellow-600 py-0.5 px-2 rounded-full text-xs font-medium">0</span>
+                                </button>
+                                <button data-filter="lunas" class="tab-filter macos-tab flex items-center whitespace-nowrap py-3 px-1 font-medium text-sm text-gray-500 hover:text-gray-700">
+                                    Lunas
+                                    <span id="count-lunas" class="ml-2 hidden bg-green-100 text-green-600 py-0.5 px-2 rounded-full text-xs font-medium">0</span>
+                                </button>
+                            </nav>
+                        </div>
+                    </div>
+
+                    <!-- Search Bar -->
+                    <div class="mb-4 relative">
+                        <input type="text" id="search-bar" placeholder="Cari nama pelanggan..." class="macos-input w-full pl-10 pr-10 py-3 rounded-lg">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <!-- macOS Search Icon -->
+                            <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"/>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                        </div>
+                        <button id="clear-search" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 hidden">
+                            <!-- macOS X Icon -->
+                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Customer List -->
+                    <div id="customer-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Customer cards will be injected here by JavaScript -->
+                    </div>
+                    
+                    <div id="empty-state" class="hidden text-center text-gray-500 mt-16">
+                        <!-- macOS Person Icon (Empty State) -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-24 h-24 mx-auto text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        <h3 class="mt-2 text-lg font-medium text-gray-700">Tidak ada pelanggan</h3>
+                        <p class="mt-1 text-sm text-gray-500">Mulai dengan menambahkan pelanggan baru.</p>
+                        <div class="mt-6">
+                            <button type="button" id="tambah-pelanggan-empty" class="macos-primary inline-flex items-center px-4 py-2 shadow-sm text-sm font-medium rounded-lg">
+                                <!-- macOS Plus Icon -->
+                                <svg xmlns="http://www.w3.org/2000/svg" class="-ml-1 mr-2 h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"/>
+                                    <line x1="5" y1="12" x2="19" y2="12"/>
+                                </svg>
+                                Tambah Pelanggan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ======================= -->
+            <!-- Page: Laporan -->
+            <!-- ======================= -->
+            <div id="page-laporan" class="page">
+                <div class="container mx-auto max-w-5xl p-4">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Laporan Keuangan</h2>
+                    
+                    <!-- Filter Periode -->
+                    <div class="glass-card p-4 mb-6">
+                        <div class="flex flex-col sm:flex-row gap-4 items-center">
+                            <div class="flex-1">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Periode</label>
+                                <div class="flex gap-2">
+                                    <select id="reportPeriod" class="macos-input flex-1">
+                                        <option value="bulan-ini">Bulan Ini</option>
+                                        <option value="bulan-lalu">Bulan Lalu</option>
+                                        <option value="3-bulan">3 Bulan Terakhir</option>
+                                        <option value="6-bulan">6 Bulan Terakhir</option>
+                                        <option value="tahun-ini">Tahun Ini</option>
+                                        <option value="custom">Custom</option>
+                                    </select>
+                                    <div id="customDateRange" class="hidden flex-1 gap-2">
+                                        <input type="date" id="startDate" class="macos-input flex-1">
+                                        <input type="date" id="endDate" class="macos-input flex-1">
+                                    </div>
+                                </div>
+                            </div>
+                            <button id="generateReport" class="macos-primary px-6 py-3 mt-6 sm:mt-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 inline mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="7 10 12 15 17 10"/>
+                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                                Generate Laporan
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Ringkasan Laporan -->
+                    <div id="reportSummary" class="hidden">
+                        <!-- Cards Ringkasan -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                            <div class="glass-card p-6 rounded-xl">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 bg-blue-500 rounded-xl p-3">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <line x1="12" y1="1" x2="12" y2="23"/>
+                                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm font-medium text-gray-500">Total Pendapatan</p>
+                                        <p id="reportTotalPendapatan" class="text-2xl font-bold text-gray-900">Rp 0</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="glass-card p-6 rounded-xl">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 bg-red-500 rounded-xl p-3">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                                            <line x1="12" y1="9" x2="12" y2="13"/>
+                                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm font-medium text-gray-500">Total Tunggakan</p>
+                                        <p id="reportTotalTunggakan" class="text-2xl font-bold text-gray-900">Rp 0</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="glass-card p-6 rounded-xl">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 bg-green-500 rounded-xl p-3">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                            <circle cx="12" cy="7" r="4"/>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm font-medium text-gray-500">Pelanggan Aktif</p>
+                                        <p id="reportPelangganAktif" class="text-2xl font-bold text-gray-900">0</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="glass-card p-6 rounded-xl">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 bg-purple-500 rounded-xl p-3">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                            <polyline points="22 4 12 14.01 9 11.01"/>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm font-medium text-gray-500">Rata-rata Bayar</p>
+                                        <p id="reportRataBayar" class="text-2xl font-bold text-gray-900">Rp 0</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Detail Laporan -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                            <!-- Chart Laporan -->
+                            <div class="glass-card p-6 rounded-xl">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-4">Grafik Pendapatan & Tunggakan</h3>
+                                <div id="reportChart" class="h-64 flex items-center justify-center">
+                                    <p class="text-gray-500">Grafik akan muncul di sini</p>
+                                </div>
+                            </div>
+
+                            <!-- Top Pelanggan -->
+                            <div class="glass-card p-6 rounded-xl">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-4">Top 5 Pelanggan</h3>
+                                <div id="topCustomers" class="space-y-3">
+                                    <p class="text-gray-500 text-center py-8">Data pelanggan akan muncul di sini</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tabel Detail Pembayaran -->
+                        <div class="glass-card p-6 rounded-xl">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg font-semibold text-gray-800">Detail Transaksi</h3>
+                                <div class="flex space-x-2">
+                                    <button id="exportReportPDF" class="macos-button px-4 py-2 text-sm">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                            <polyline points="14 2 14 8 20 8"/>
+                                            <line x1="16" y1="13" x2="8" y2="13"/>
+                                            <line x1="16" y1="17" x2="8" y2="17"/>
+                                            <polyline points="10 9 9 9 8 9"/>
+                                        </svg>
+                                        Export PDF
+                                    </button>
+                                    <button id="exportReport" class="macos-button px-4 py-2 text-sm">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                            <polyline points="7 10 12 15 17 10"/>
+                                            <line x1="12" y1="15" x2="12" y2="3"/>
+                                        </svg>
+                                        Export CSV
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead>
+                                        <tr class="border-b border-gray-200">
+                                            <th class="text-left py-3 px-4 text-sm font-medium text-gray-700">Tanggal</th>
+                                            <th class="text-left py-3 px-4 text-sm font-medium text-gray-700">Pelanggan</th>
+                                            <th class="text-left py-3 px-4 text-sm font-medium text-gray-700">Jenis</th>
+                                            <th class="text-right py-3 px-4 text-sm font-medium text-gray-700">Jumlah</th>
+                                            <th class="text-center py-3 px-4 text-sm font-medium text-gray-700">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="reportTransactions">
+                                        <tr>
+                                            <td colspan="5" class="text-center py-8 text-gray-500">
+                                                Pilih periode dan generate laporan untuk melihat data
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="reportEmptyState" class="text-center py-16">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-24 h-24 mx-auto text-gray-300 mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <polyline points="10 9 9 9 8 9"/>
+                        </svg>
+                        <h3 class="text-xl font-medium text-gray-700 mb-2">Belum Ada Laporan</h3>
+                        <p class="text-gray-500 mb-6">Pilih periode dan generate laporan untuk melihat data keuangan</p>
+                        <button id="generateFirstReport" class="macos-primary px-6 py-3">
+                            Generate Laporan Pertama
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ======================= -->
+            <!-- Page: Pengaturan -->
+            <!-- ======================= -->
+            <div id="page-pengaturan" class="page">
+                <div class="container mx-auto max-w-5xl p-4">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Pengaturan</h2>
+                    
+                    <div class="glass-card p-6 rounded-xl">
+                        <form id="settingsForm">
+                            <div class="space-y-6">
+                                <div>
+                                    <label for="namaUsaha" class="block text-sm font-medium text-gray-700">Nama Usaha Anda</label>
+                                    <input type="text" id="namaUsaha" class="macos-input mt-1 block w-full px-4 py-3 rounded-lg" placeholder="Contoh: ANPAC Net">
+                                    <p class="mt-1 text-xs text-gray-500">Nama ini akan muncul di header aplikasi dan di template WA.</p>
+                                </div>
+                                
+                                <div>
+                                    <label for="templateWa" class="block text-sm font-medium text-gray-700">Template Pesan WhatsApp</label>
+                                    <textarea id="templateWa" rows="6" class="macos-input mt-1 block w-full px-4 py-3 rounded-lg"></textarea>
+                                    <p class="mt-1 text-xs text-gray-500">
+                                        Gunakan variabel: 
+                                        <code class="bg-gray-200 px-1 py-0.5 rounded text-xs">{nama}</code>, 
+                                        <code class="bg-gray-200 px-1 py-0.5 rounded text-xs">{total_tagihan}</code>, 
+                                        <code class="bg-gray-200 px-1 py-0.5 rounded text-xs">{nama_usaha}</code>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex justify-end mt-6">
+                                <button type="submit" class="macos-primary px-6 py-3 rounded-lg font-medium">
+                                    Simpan Pengaturan
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Floating Action Button (FAB) -->
+        <button id="fab-tambah-pelanggan" class="macos-primary fixed bottom-24 right-6 text-white p-4 rounded-full shadow-lg z-40 hidden">
+            <!-- macOS Plus Icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+        </button>
+
+        <!-- Bottom Navigation Bar -->
+        <nav class="glass-nav fixed bottom-0 left-0 right-0 shadow-[0_-1px_3px_rgba(0,0,0,0.1)] z-30">
+            <div class="container mx-auto max-w-5xl flex justify-around h-16">
+                <button data-page="home" class="btn-nav flex flex-col items-center justify-center text-blue-500 px-4">
+                    <!-- macOS Home Icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
+                        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                    <span class="text-xs font-medium">Home</span>
+                </button>
+                <button data-page="pelanggan" class="btn-nav flex flex-col items-center justify-center text-gray-500 hover:text-blue-500 px-4">
+                    <!-- macOS Person Icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    <span class="text-xs font-medium">Pelanggan</span>
+                </button>
+                <button data-page="laporan" class="btn-nav flex flex-col items-center justify-center text-gray-500 hover:text-blue-500 px-4">
+                    <!-- macOS Chart Icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
+                        <line x1="18" y1="20" x2="18" y2="10"/>
+                        <line x1="12" y1="20" x2="12" y2="4"/>
+                        <line x1="6" y1="20" x2="6" y2="14"/>
+                    </svg>
+                    <span class="text-xs font-medium">Laporan</span>
+                </button>
+                <button data-page="pengaturan" class="btn-nav flex flex-col items-center justify-center text-gray-500 hover:text-blue-500 px-4">
+                    <!-- macOS Gear Icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    <span class="text-xs font-medium">Pengaturan</span>
+                </button>
+            </div>
+        </nav>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- MODALS (Hidden by default)                     -->
+    <!-- ============================================= -->
+
+    <!-- Modal Edit Tunggakan -->
+    <div id="editTunggakanModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 modal-backdrop items-center justify-center z-50 hidden">
+        <div class="modal-content macos-modal w-full max-w-md m-4 opacity-0 transform scale-95">
+            <div class="p-6">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Edit Tunggakan</h3>
+                <p class="text-sm text-gray-600 mb-4">Pelanggan: <span id="editTunggakanCustomerName" class="font-medium"></span></p>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label for="editTunggakanAmount" class="block text-sm font-medium text-gray-700">Jumlah Tunggakan (Rp)</label>
+                        <input type="number" id="editTunggakanAmount" class="macos-input mt-1 block w-full px-4 py-3 rounded-lg" placeholder="Masukkan jumlah tunggakan">
+                        <input type="hidden" id="editTunggakanCustomerId">
+                    </div>
+                    
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <!-- macOS Warning Icon -->
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                                    <line x1="12" y1="9" x2="12" y2="13"/>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-yellow-700">
+                                    <span class="font-medium">Perhatian:</span> Mengubah nilai tunggakan akan mempengaruhi total tagihan pelanggan.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" class="macos-button px-6 py-3 text-gray-700 rounded-lg font-medium" data-modal="editTunggakanModal">
+                        Batal
+                    </button>
+                    <button type="button" id="btn-simpan-tunggakan" class="macos-primary px-6 py-3 text-white rounded-lg font-medium">
+                        <!-- macOS Save Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 inline mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                            <polyline points="17 21 17 13 7 13 7 21"/>
+                            <polyline points="7 3 7 8 15 8"/>
+                        </svg>
+                        Simpan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Tambah/Edit Pelanggan -->
+    <div id="customerModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 modal-backdrop items-center justify-center z-50 hidden">
+        <div class="modal-content macos-modal w-full max-w-lg m-4 opacity-0 transform scale-95">
+            <form id="customerForm" class="p-6">
+                <h3 class="text-xl font-semibold text-gray-900 mb-6" id="modalTitle">Tambah Pelanggan Baru</h3>
+                <input type="hidden" id="customerId">
+                <div class="space-y-4">
+                    <div>
+                        <label for="nama" class="block text-sm font-medium text-gray-700">Nama</label>
+                        <input type="text" id="nama" class="macos-input mt-1 block w-full px-4 py-3 rounded-lg" required>
+                    </div>
+                    <div>
+                        <label for="paket" class="block text-sm font-medium text-gray-700">Paket</label>
+                        <select id="paket" class="macos-input mt-1 block w-full px-4 py-3 rounded-lg">
+                            <option value="Paket 1">Paket 1</option>
+                            <option value="Paket 2">Paket 2</option>
+                            <option value="Paket 3">Paket 3</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="harga" class="block text-sm font-medium text-gray-700">Harga Paket (Rp)</label>
+                        <input type="number" id="harga" class="macos-input mt-1 block w-full px-4 py-3 rounded-lg" required>
+                    </div>
+                    <div>
+                        <label for="noHp" class="block text-sm font-medium text-gray-700">No. HP</label>
+                        <input type="tel" id="noHp" class="macos-input mt-1 block w-full px-4 py-3 rounded-lg" placeholder="Contoh: 628123456789">
+                    </div>
+                    <div>
+                        <label for="alamat" class="block text-sm font-medium text-gray-700">Alamat</label>
+                        <textarea id="alamat" rows="2" class="macos-input mt-1 block w-full px-4 py-3 rounded-lg"></textarea>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-8">
+                    <button type="button" class="macos-button px-6 py-3 text-gray-700 rounded-lg font-medium" data-modal="customerModal">
+                        Batal
+                    </button>
+                    <button type="submit" class="macos-primary px-6 py-3 text-white rounded-lg font-medium">
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Pembayaran -->
+    <div id="paymentModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 modal-backdrop items-center justify-center z-50 hidden">
+        <div class="modal-content macos-modal w-full max-w-md m-4 opacity-0 transform scale-95">
+            <div class="p-6">
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">Pembayaran</h3>
+                <p class="text-sm text-gray-600 mb-4">Pelanggan: <span id="paymentCustomerName" class="font-medium"></span></p>
+                
+                <div class="space-y-3 mb-6">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">Tagihan Paket</span>
+                        <span id="paymentHarga" class="font-medium text-gray-700">Rp 0</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">Tunggakan Bulan Lalu</span>
+                        <span id="paymentTunggakan" class="font-medium text-gray-700">Rp 0</span>
+                    </div>
+                    <hr>
+                    <div class="flex justify-between text-lg">
+                        <span class="font-semibold text-gray-800">Total Tagihan</span>
+                        <span id="paymentTotal" class="font-bold text-blue-600">Rp 0</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="paymentAmount" class="block text-sm font-medium text-gray-700">Jumlah Bayar (Rp)</label>
+                    <input type="number" id="paymentAmount" class="macos-input mt-1 block w-full px-4 py-3 rounded-lg" placeholder="Masukkan jumlah">
+                    <input type="hidden" id="paymentCustomerId">
+                    <input type="hidden" id="paymentTotalAmount">
+                </div>
+
+                <div class="flex flex-col space-y-3 mt-6">
+                    <button id="btn-bayar-lunas" class="w-full px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                        <!-- macOS Checkmark Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 inline mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        Bayar LUNAS (Otomatis)
+                    </button>
+                    <button id="btn-bayar-manual" class="macos-primary w-full px-6 py-3 text-white rounded-lg font-medium">
+                        <!-- macOS Dollar Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 inline mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="1" x2="12" y2="23"/>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                        Bayar (Manual Sesuai Input)
+                    </button>
+                </div>
+                <button type="button" class="macos-button w-full mt-3 px-6 py-3 text-gray-700 rounded-lg font-medium" data-modal="paymentModal">
+                    Batal
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Tagihan Prorata -->
+    <div id="prorataModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 modal-backdrop items-center justify-center z-50 hidden">
+        <div class="modal-content macos-modal w-full max-w-md m-4 opacity-0 transform scale-95">
+            <div class="p-6">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Tagihan Prorata</h3>
+                <input type="hidden" id="prorataCustomerId">
+                <input type="hidden" id="prorataHarga">
+                <div class="space-y-4">
+                    <div>
+                        <label for="tglMulai" class="block text-sm font-medium text-gray-700">Tanggal Mulai Pemakaian</label>
+                        <input type="date" id="tglMulai" class="macos-input mt-1 block w-full px-4 py-3 rounded-lg">
+                    </div>
+                    <div>
+                        <label for="tglAkhir" class="block text-sm font-medium text-gray-700">Tanggal Akhir Pemakaian</label>
+                        <input type="date" id="tglAkhir" class="macos-input mt-1 block w-full px-4 py-3 rounded-lg">
+                    </div>
+                    <div>
+                        <label for="hariPeriodik" class="block text-sm font-medium text-gray-700">Jumlah Hari dalam 1 Periode (Default: 30)</label>
+                        <input type="number" id="hariPeriodik" value="30" class="macos-input mt-1 block w-full px-4 py-3 rounded-lg">
+                    </div>
+                    <div id="prorataResult" class="hidden text-center p-4 bg-blue-50 rounded-lg">
+                        <p class="text-sm text-gray-600">Jumlah Hari Pakai: <span id="prorataHari" class="font-medium">0</span> hari</p>
+                        <p class="text-lg font-semibold text-blue-700">Total Tagihan Prorata: <span id="prorataTotal" class="font-bold">Rp 0</span></p>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" class="macos-button px-6 py-3 text-gray-700 rounded-lg font-medium" data-modal="prorataModal">
+                        Batal
+                    </button>
+                    <button type="button" id="btn-buat-prorata" class="macos-primary px-6 py-3 text-white rounded-lg font-medium">
+                        <!-- macOS Calendar Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 inline mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                        Buat Tagihan Prorata
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Kirim WA -->
+    <div id="waModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 modal-backdrop items-center justify-center z-50 hidden">
+        <div class="modal-content macos-modal w-full max-w-lg m-4 opacity-0 transform scale-95">
+            <div class="p-6">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Kirim Tagihan WhatsApp</h3>
+                <p class="text-sm text-gray-600 mb-2">Pesan ini akan dikirim ke <span id="waCustomerName" class="font-medium"></span> (<span id="waCustomerPhone" class="font-medium"></span>)</p>
+                <input type="hidden" id="waLink">
+                
+                <textarea id="waMessagePreview" rows="8" class="macos-input mt-1 block w-full px-4 py-3 rounded-lg bg-gray-50"></textarea>
+
+                <div class="flex flex-col sm:flex-row sm:space-x-3 mt-6">
+                    <button type="button" id="btn-copy-wa" class="w-full sm:w-1/2 mb-2 sm:mb-0 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        <!-- macOS Copy Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 inline mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                        Copy Pesan
+                    </button>
+                    <a id="btn-kirim-wa" href="#" target="_blank" class="w-full sm:w-1/2 text-center px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                        <!-- macOS Send Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 inline mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"/>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                        </svg>
+                        Kirim via WhatsApp
+                    </a>
+                </div>
+                <button type="button" class="macos-button w-full mt-3 px-6 py-3 text-gray-700 rounded-lg font-medium" data-modal="waModal">
+                    Batal
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Import Excel -->
+    <div id="importModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 modal-backdrop items-center justify-center z-50 hidden">
+        <div class="modal-content macos-modal w-full max-w-md m-4 opacity-0 transform scale-95">
+            <div class="p-6">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Import Data Excel</h3>
+                <p class="text-sm text-gray-600 mb-4">Pastikan file Excel Anda memiliki header (baris pertama) dengan nama kolom: <code class="bg-gray-200 px-1 py-0.5 rounded text-sm">NAMA</code>, <code class="bg-gray-200 px-1 py-0.5 rounded text-sm">PAKET</code>, <code class="bg-gray-200 px-1 py-0.5 rounded text-sm">HARGA</code>, <code class="bg-gray-200 px-1 py-0.5 rounded text-sm">NO HP</code>, <code class="bg-gray-200 px-1 py-0.5 rounded text-sm">ALAMAT</code>.</p>
+                <input type="file" id="excelFile" accept=".xlsx, .xls" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" class="macos-button px-6 py-3 text-gray-700 rounded-lg font-medium" data-modal="importModal">
+                        Batal
+                    </button>
+                    <button type="button" id="btn-import-excel" class="macos-primary px-6 py-3 text-white rounded-lg font-medium">
+                        <!-- macOS Download Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 inline mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Import
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Buat Tagihan (1 Pelanggan) -->
+    <div id="tagihanModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 modal-backdrop items-center justify-center z-50 hidden">
+        <div class="modal-content macos-modal w-full max-w-md m-4 opacity-0 transform scale-95">
+            <div class="p-6">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Buat Tagihan Manual</h3>
+                <p class="text-sm text-gray-600 mb-6">Ini akan menambahkan tagihan bulan ini (sesuai harga paket) ke total tagihan pelanggan. Anda yakin?</p>
+                <input type="hidden" id="tagihanCustomerId">
+                <div class="flex justify-end space-x-3">
+                    <button type="button" class="macos-button px-6 py-3 text-gray-700 rounded-lg font-medium" data-modal="tagihanModal">
+                        Batal
+                    </button>
+                    <button type="button" id="btn-konfirmasi-tagihan" class="macos-primary px-6 py-3 text-white rounded-lg font-medium">
+                        <!-- macOS Plus Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 inline mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Ya, Buat Tagihan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Hapus Pelanggan -->
+    <div id="deleteModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 modal-backdrop items-center justify-center z-50 hidden">
+        <div class="modal-content macos-modal w-full max-w-md m-4 opacity-0 transform scale-95">
+            <div class="p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                        <!-- macOS Warning Icon -->
+                        <svg class="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-xl font-semibold text-gray-900">Hapus Pelanggan</h3>
+                        <p class="text-sm text-gray-600 mt-1">Anda yakin ingin menghapus pelanggan ini? Data tidak dapat dikembalikan.</p>
+                    </div>
+                </div>
+                <input type="hidden" id="deleteCustomerId">
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" class="macos-button px-6 py-3 text-gray-700 rounded-lg font-medium" data-modal="deleteModal">
+                        Batal
+                    </button>
+                    <button type="button" id="btn-konfirmasi-hapus" class="px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                        <!-- macOS Trash Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 inline mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 6h18"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                        Ya, Hapus
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Hapus SEMUA Data -->
+    <div id="deleteSemuaModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 modal-backdrop items-center justify-center z-50 hidden">
+        <div class="modal-content macos-modal w-full max-w-md m-4 opacity-0 transform scale-95">
+            <div class="p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                        <!-- macOS Warning Icon -->
+                        <svg class="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-xl font-semibold text-gray-900">HAPUS SEMUA DATA</h3>
+                        <p class="text-sm text-gray-600 mt-1">Anda yakin ingin menghapus **SEMUA** data pelanggan? Aksi ini tidak dapat dibatalkan.</p>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" class="macos-button px-6 py-3 text-gray-700 rounded-lg font-medium" data-modal="deleteSemuaModal">
+                        Batal
+                    </button>
+                    <button type="button" id="btn-konfirmasi-hapus-semua" class="px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                        <!-- macOS Trash Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 inline mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 6h18"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                        Ya, Hapus Semua
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Hapus Transaksi -->
+    <div id="deletePaymentModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 modal-backdrop items-center justify-center z-50 hidden">
+        <div class="modal-content macos-modal w-full max-w-md m-4 opacity-0 transform scale-95">
+            <div class="p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                        <!-- macOS Warning Icon -->
+                        <svg class="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-xl font-semibold text-gray-900">Hapus Transaksi</h3>
+                        <p class="text-sm text-gray-600 mt-1">Anda yakin ingin menghapus transaksi ini? Aksi ini akan mengembalikan status pelanggan menjadi belum bayar.</p>
+                    </div>
+                </div>
+                <input type="hidden" id="deletePaymentId">
+                <input type="hidden" id="deletePaymentCustomerId">
+                <input type="hidden" id="deletePaymentAmount">
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" class="macos-button px-6 py-3 text-gray-700 rounded-lg font-medium" data-modal="deletePaymentModal">
+                        Batal
+                    </button>
+                    <button type="button" id="btn-konfirmasi-hapus-payment" class="px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                        <!-- macOS Trash Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 inline mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 6h18"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                        Ya, Hapus
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Info Modal (Notifikasi) -->
+    <div id="infoModal" class="fixed top-5 left-1/2 -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-[99] hidden opacity-0 transition-all duration-300">
+        <span id="infoMessage"></span>
+    </div>
+
+    <!-- Dark Mode Toggle -->
+    <div id="darkModeToggle" title="Mode Malam / Terang">
+        <!-- Sun Icon -->
+        <svg class="sun" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="5"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+        <!-- Moon Icon -->
+        <svg class="moon" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- Firebase SDK dan JavaScript Aplikasi         -->
+    <!-- ============================================= -->
+    <script type="module">
+        // Import fungsi Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, 
+            deleteDoc, onSnapshot, collection, query, getDocs, writeBatch,
+            where, orderBy, Timestamp
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // =========================================================================
+        // Konfigurasi Firebase
+        // =========================================================================
+        const firebaseConfig = {
+  apiKey: "AIzaSyCB5JdfI2BUlM_DNrrWxU89yk-UVLaI-Po",
+  authDomain: "anpac-3c5ad.firebaseapp.com",
+  projectId: "anpac-3c5ad",
+  storageBucket: "anpac-3c5ad.firebasestorage.app",
+  messagingSenderId: "864836597053",
+  appId: "1:864836597053:web:3ca1884796ae8c5accc154"
+};
+
+        // --- Variabel Global Aplikasi ---
+        let db;
+        let auth;
+        let customersCollection;
+        let settingsCollection;
+        let paymentsCollection;
+        let settingsDocRef;
+        let unsubscribeSnap;
+        let unsubscribeSettingsSnap;
+        let currentFilter = "semua";
+        let customersData = [];
+        let appSettings = {
+            namaUsaha: "ANPAC Net",
+            templateWa: "Halo {nama}, kami dari {nama_usaha} ingin memberitahukan total tagihan Anda bulan ini adalah {total_tagihan}. Terima kasih."
+        };
+
+        // --- Variabel Kunci Sandi ---
+        const PASSWORD_HASH_KEY = 'wahyu-net-password-hash';
+        const correctPassword = "net.wahyu";
+
+        // --- DOM Elements Aplikasi ---
+        const customerList = document.getElementById('customer-list');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const emptyState = document.getElementById('empty-state');
+        const totalTagihanHeader = document.getElementById('total-tagihan-header');
+        const appTitleHeader = document.getElementById('app-title-header');
+        
+        // --- DOM Elements Kunci Sandi ---
+        const lockScreen = document.getElementById('lockScreen');
+        const appContent = document.getElementById('appContent');
+        const lockForm = document.getElementById('lockForm');
+        const passwordInput = document.getElementById('password');
+        const passwordError = document.getElementById('passwordError');
+
+        // Variabel untuk menyimpan data laporan
+        let currentReportData = null;
+
+        // ========================
+        // FUNGSI LAPORAN
+        // ========================
+
+        // Fungsi untuk menampilkan/sembunyikan custom date range
+        function setupReportFilters() {
+            const reportPeriod = document.getElementById('reportPeriod');
+            const customDateRange = document.getElementById('customDateRange');
+            
+            reportPeriod.addEventListener('change', function() {
+                if (this.value === 'custom') {
+                    customDateRange.classList.remove('hidden');
+                    customDateRange.classList.add('flex');
+                } else {
+                    customDateRange.classList.add('hidden');
+                    customDateRange.classList.remove('flex');
+                }
+                // Auto generate laporan saat periode berubah
+                if (this.value !== 'custom') {
+                    generateReport();
+                }
+            });
+
+            // Auto generate laporan saat custom date berubah
+            document.getElementById('startDate').addEventListener('change', function() {
+                if (document.getElementById('reportPeriod').value === 'custom') {
+                    generateReport();
+                }
+            });
+            
+            document.getElementById('endDate').addEventListener('change', function() {
+                if (document.getElementById('reportPeriod').value === 'custom') {
+                    generateReport();
+                }
+            });
+        }
+
+        // Fungsi untuk generate laporan
+        async function generateReport() {
+            const period = document.getElementById('reportPeriod').value;
+            let startDate, endDate;
+            
+            // Tentukan tanggal berdasarkan periode
+            const now = new Date();
+            switch(period) {
+                case 'bulan-ini':
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                    break;
+                case 'bulan-lalu':
+                    startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+                    break;
+                case '3-bulan':
+                    startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+                    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                    break;
+                case '6-bulan':
+                    startDate = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+                    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                    break;
+                case 'tahun-ini':
+                    startDate = new Date(now.getFullYear(), 0, 1);
+                    endDate = new Date(now.getFullYear(), 11, 31);
+                    break;
+                case 'custom':
+                    startDate = new Date(document.getElementById('startDate').value);
+                    endDate = new Date(document.getElementById('endDate').value);
+                    break;
+            }
+            
+            try {
+                loadingOverlay.style.display = 'flex';
+                
+                // Ambil data pembayaran dalam periode
+                const paymentsQuery = query(
+                    paymentsCollection,
+                    where('tanggalBayar', '>=', startDate.toISOString()),
+                    where('tanggalBayar', '<=', endDate.toISOString()),
+                    orderBy('tanggalBayar', 'desc')
+                );
+                
+                const paymentsSnapshot = await getDocs(paymentsQuery);
+                const paymentsData = [];
+                let totalPendapatan = 0;
+                
+                paymentsSnapshot.forEach(doc => {
+                    const payment = { id: doc.id, ...doc.data() };
+                    paymentsData.push(payment);
+                    totalPendapatan += payment.jumlahBayar;
+                });
+                
+                // Hitung statistik lainnya
+                const totalTunggakan = customersData.reduce((acc, c) => acc + (c.tunggakan || 0), 0);
+                const pelangganAktif = customersData.filter(c => (c.tunggakan || 0) + (c.tagihanBulanIni || 0) > 0).length;
+                const rataBayar = paymentsData.length > 0 ? totalPendapatan / paymentsData.length : 0;
+                
+                // Simpan data laporan untuk export
+                currentReportData = {
+                    totalPendapatan,
+                    totalTunggakan,
+                    pelangganAktif,
+                    rataBayar,
+                    payments: paymentsData,
+                    startDate,
+                    endDate,
+                    period
+                };
+                
+                // Update UI
+                updateReportUI(currentReportData);
+                
+                showInfoModal('Laporan berhasil digenerate!');
+                
+            } catch (error) {
+                console.error('Error generating report:', error);
+                showInfoModal('Gagal generate laporan.', 'error');
+            } finally {
+                loadingOverlay.style.display = 'none';
+            }
+        }
+
+        // Update UI laporan
+        function updateReportUI(data) {
+            // Sembunyikan empty state, tampilkan summary
+            document.getElementById('reportEmptyState').classList.add('hidden');
+            document.getElementById('reportSummary').classList.remove('hidden');
+            
+            // Update ringkasan
+            document.getElementById('reportTotalPendapatan').textContent = formatRupiah(data.totalPendapatan);
+            document.getElementById('reportTotalTunggakan').textContent = formatRupiah(data.totalTunggakan);
+            document.getElementById('reportPelangganAktif').textContent = data.pelangganAktif;
+            document.getElementById('reportRataBayar').textContent = formatRupiah(data.rataBayar);
+            
+            // Update tabel transaksi
+            updateTransactionsTable(data.payments);
+            
+            // Update top customers
+            updateTopCustomers(data.payments);
+            
+            // Update chart
+            updateReportChart(data);
+        }
+
+        // Update tabel transaksi
+        function updateTransactionsTable(payments) {
+            const tbody = document.getElementById('reportTransactions');
+            
+            if (payments.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center py-8 text-gray-500">
+                            Tidak ada transaksi dalam periode ini
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = payments.map(payment => `
+                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="py-3 px-4 text-sm text-gray-700">
+                        ${new Date(payment.tanggalBayar).toLocaleDateString('id-ID')}
+                    </td>
+                    <td class="py-3 px-4 text-sm text-gray-700">${payment.customerName}</td>
+                    <td class="py-3 px-4 text-sm">
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            payment.jenisBayar === 'lunas' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                        }">
+                            ${payment.jenisBayar === 'lunas' ? 'LUNAS' : 'MANUAL'}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 text-sm text-right font-medium text-gray-900">
+                        ${formatRupiah(payment.jumlahBayar)}
+                    </td>
+                    <td class="py-3 px-4 text-sm text-center">
+                        <button class="btn-delete-payment text-red-500 hover:text-red-700" 
+                                data-id="${payment.id}"
+                                data-customer-id="${payment.customerId}"
+                                data-amount="${payment.jumlahBayar}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 6h18"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Update top customers
+        function updateTopCustomers(payments) {
+            const container = document.getElementById('topCustomers');
+            
+            // Hitung total pembayaran per customer
+            const customerTotals = {};
+            payments.forEach(payment => {
+                if (!customerTotals[payment.customerName]) {
+                    customerTotals[payment.customerName] = 0;
+                }
+                customerTotals[payment.customerName] += payment.jumlahBayar;
+            });
+            
+            // Urutkan dari terbesar ke terkecil
+            const sortedCustomers = Object.entries(customerTotals)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 5);
+            
+            if (sortedCustomers.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">Tidak ada data pembayaran</p>';
+                return;
+            }
+            
+            container.innerHTML = sortedCustomers.map(([name, total], index) => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                            ${index + 1}
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-gray-900">${name}</p>
+                            <p class="text-xs text-gray-500">${formatRupiah(total)}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Top ${index + 1}
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Update chart laporan
+        function updateReportChart(data) {
+            const container = document.getElementById('reportChart');
+            
+            // Sederhana: tampilkan perbandingan pendapatan vs tunggakan
+            const chartHTML = `
+                <div class="w-full h-full flex flex-col items-center justify-center">
+                    <div class="flex items-end justify-center space-x-4 mb-6" style="height: 120px;">
+                        <div class="flex flex-col items-center">
+                            <div class="bg-green-500 rounded-t w-16 mb-2" style="height: ${Math.max(20, (data.totalPendapatan / (data.totalPendapatan + data.totalTunggakan)) * 80)}px"></div>
+                            <span class="text-xs text-gray-600">Pendapatan</span>
+                            <span class="text-sm font-bold text-green-600">${formatRupiah(data.totalPendapatan)}</span>
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <div class="bg-red-500 rounded-t w-16 mb-2" style="height: ${Math.max(20, (data.totalTunggakan / (data.totalPendapatan + data.totalTunggakan)) * 80)}px"></div>
+                            <span class="text-xs text-gray-600">Tunggakan</span>
+                            <span class="text-sm font-bold text-red-600">${formatRupiah(data.totalTunggakan)}</span>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-sm text-gray-600">Total Transaksi: ${data.payments.length} pembayaran</p>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = chartHTML;
+        }
+
+        // Fungsi untuk mendapatkan nama periode untuk file dan judul
+        function getPeriodName(period, startDate, endDate) {
+            switch(period) {
+                case 'bulan-ini':
+                    const bulanIni = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+                    return `Bulan ${bulanIni}`;
+                case 'bulan-lalu':
+                    const bulanLalu = new Date();
+                    bulanLalu.setMonth(bulanLalu.getMonth() - 1);
+                    return `Bulan ${bulanLalu.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`;
+                case '3-bulan':
+                    const tigaBulanAwal = new Date();
+                    tigaBulanAwal.setMonth(tigaBulanAwal.getMonth() - 3);
+                    const tigaBulanAkhir = new Date();
+                    return `Periode ${tigaBulanAwal.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })} - ${tigaBulanAkhir.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`;
+                case '6-bulan':
+                    const enamBulanAwal = new Date();
+                    enamBulanAwal.setMonth(enamBulanAwal.getMonth() - 6);
+                    const enamBulanAkhir = new Date();
+                    return `Periode ${enamBulanAwal.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })} - ${enamBulanAkhir.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`;
+                case 'tahun-ini':
+                    const tahunIni = new Date().getFullYear();
+                    return `Tahun ${tahunIni}`;
+                case 'custom':
+                    const start = new Date(startDate).toLocaleDateString('id-ID');
+                    const end = new Date(endDate).toLocaleDateString('id-ID');
+                    return `Periode ${start} - ${end}`;
+                default:
+                    return new Date().toLocaleDateString('id-ID');
+            }
+        }
+
+        // Export laporan ke CSV
+        function exportReportToCSV() {
+            if (!currentReportData || currentReportData.payments.length === 0) {
+                showInfoModal('Tidak ada data untuk diexport', 'error');
+                return;
+            }
+            
+            // Header CSV
+            let csv = 'Tanggal,Pelanggan,Jenis Bayar,Jumlah\n';
+            
+            // Data rows
+            currentReportData.payments.forEach(payment => {
+                csv += `"${new Date(payment.tanggalBayar).toLocaleDateString('id-ID')}","${payment.customerName}","${payment.jenisBayar}","${payment.jumlahBayar}"\n`;
+            });
+            
+            // Create download link
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            
+            // Generate filename berdasarkan periode
+            const periodName = getPeriodName(currentReportData.period, currentReportData.startDate, currentReportData.endDate);
+            const filename = `laporan-${periodName.toLowerCase().replace(/ /g, '-')}.csv`;
+            
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showInfoModal('Laporan berhasil diexport ke CSV!');
+        }
+
+        // Export laporan ke PDF
+        function exportReportToPDF() {
+            if (!currentReportData || currentReportData.payments.length === 0) {
+                showInfoModal('Tidak ada data untuk diexport', 'error');
+                return;
+            }
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Judul berdasarkan periode
+                const periodName = getPeriodName(currentReportData.period, currentReportData.startDate, currentReportData.endDate);
+                
+                // Judul
+                doc.setFontSize(20);
+                doc.text(`LAPORAN KEUANGAN ${periodName.toUpperCase()}`, 105, 15, { align: 'center' });
+                
+                // Periode
+                doc.setFontSize(12);
+                doc.text(`Periode: ${periodName}`, 14, 25);
+                
+                // Tanggal generate
+                doc.text(`Dibuat: ${new Date().toLocaleDateString('id-ID')}`, 14, 32);
+                
+                // Ringkasan
+                doc.setFontSize(14);
+                doc.text('RINGKASAN', 14, 45);
+                doc.setFontSize(10);
+                doc.text(`Total Pendapatan: ${formatRupiah(currentReportData.totalPendapatan)}`, 14, 55);
+                doc.text(`Total Tunggakan: ${formatRupiah(currentReportData.totalTunggakan)}`, 14, 62);
+                doc.text(`Pelanggan Aktif: ${currentReportData.pelangganAktif}`, 14, 69);
+                doc.text(`Rata-rata Bayar: ${formatRupiah(currentReportData.rataBayar)}`, 14, 76);
+                
+                // Tabel transaksi
+                const tableColumn = ["Tanggal", "Pelanggan", "Jenis", "Jumlah"];
+                const tableRows = [];
+                
+                currentReportData.payments.forEach(payment => {
+                    const paymentData = [
+                        new Date(payment.tanggalBayar).toLocaleDateString('id-ID'),
+                        payment.customerName,
+                        payment.jenisBayar === 'lunas' ? 'LUNAS' : 'MANUAL',
+                        formatRupiah(payment.jumlahBayar)
+                    ];
+                    tableRows.push(paymentData);
+                });
+                
+                // Add table to PDF
+                doc.autoTable({
+                    head: [tableColumn],
+                    body: tableRows,
+                    startY: 85,
+                    styles: { fontSize: 8 },
+                    headStyles: { fillColor: [59, 130, 246] }
+                });
+                
+                // Generate filename
+                const filename = `laporan-${periodName.toLowerCase().replace(/ /g, '-')}.pdf`;
+                
+                // Save PDF
+                doc.save(filename);
+                showInfoModal('Laporan berhasil diexport ke PDF!');
+                
+            } catch (error) {
+                console.error('Error exporting to PDF:', error);
+                showInfoModal('Gagal export ke PDF', 'error');
+            }
+        }
+
+        // ========================
+        // FUNGSI STATISTIK & CHART
+        // ========================
+
+        // Fungsi untuk mencatat pembayaran ke history
+        async function recordPayment(customerId, customerName, jumlahBayar, jenisBayar, bulanTahun) {
+            try {
+                await addDoc(paymentsCollection, {
+                    customerId: customerId,
+                    customerName: customerName,
+                    jumlahBayar: jumlahBayar,
+                    jenisBayar: jenisBayar,
+                    bulanTahun: bulanTahun,
+                    tanggalBayar: new Date().toISOString(),
+                    createdAt: Timestamp.now()
+                });
+                console.log('Pembayaran tercatat:', { customerName, jumlahBayar, bulanTahun });
+            } catch (error) {
+                console.error('Error recording payment:', error);
+            }
+        }
+
+        // Fungsi untuk mendapatkan data statistik bulanan
+        async function getMonthlyStats() {
+            try {
+                // Ambil data 6 bulan terakhir
+                const sixMonthsAgo = new Date();
+                sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+                
+                const paymentsQuery = query(
+                    paymentsCollection,
+                    where('tanggalBayar', '>=', sixMonthsAgo.toISOString()),
+                    orderBy('tanggalBayar', 'asc')
+                );
+                
+                const querySnapshot = await getDocs(paymentsQuery);
+                const monthlyData = {};
+                
+                // Inisialisasi 6 bulan terakhir
+                for (let i = 5; i >= 0; i--) {
+                    const date = new Date();
+                    date.setMonth(date.getMonth() - i);
+                    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    const monthName = date.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+                    
+                    monthlyData[monthKey] = {
+                        monthName: monthName,
+                        pendapatan: 0,
+                        tunggakan: 0
+                    };
+                }
+                
+                // Hitung pendapatan per bulan
+                querySnapshot.forEach((doc) => {
+                    const payment = doc.data();
+                    const monthKey = payment.bulanTahun;
+                    
+                    if (monthlyData[monthKey]) {
+                        monthlyData[monthKey].pendapatan += payment.jumlahBayar;
+                    }
+                });
+                
+                // Hitung tunggakan per bulan (dari data pelanggan saat ini)
+                const currentMonth = new Date().toISOString().substring(0, 7);
+                const totalTunggakanSekarang = customersData.reduce((acc, c) => acc + (c.tunggakan || 0), 0);
+                
+                if (monthlyData[currentMonth]) {
+                    monthlyData[currentMonth].tunggakan = totalTunggakanSekarang;
+                }
+                
+                return monthlyData;
+            } catch (error) {
+                console.error('Error getting monthly stats:', error);
+                return {};
+            }
+        }
+
+        // Fungsi untuk render chart sederhana
+        function renderChart(statsData, chartType = 'pendapatan') {
+            const chartContainer = document.getElementById('chartContainer');
+            const months = Object.values(statsData).map(data => data.monthName);
+            const dataValues = Object.values(statsData).map(data => 
+                chartType === 'pendapatan' ? data.pendapatan : data.tunggakan
+            );
+            
+            if (dataValues.every(val => val === 0)) {
+                chartContainer.innerHTML = `
+                    <div class="text-center text-gray-500 py-8">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-16 h-16 mx-auto text-gray-300 mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                            <line x1="12" y1="22.08" x2="12" y2="12"/>
+                        </svg>
+                        <p class="text-lg font-medium">Belum ada data ${chartType}</p>
+                        <p class="text-sm mt-1">Data akan muncul setelah ada pembayaran</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const maxValue = Math.max(...dataValues);
+            const chartHeight = 200;
+            
+            let chartHTML = `
+                <div class="chart-container" style="height: ${chartHeight}px; position: relative;">
+                    <div class="flex items-end justify-between h-full space-x-2">
+            `;
+            
+            dataValues.forEach((value, index) => {
+                const barHeight = maxValue > 0 ? (value / maxValue) * (chartHeight - 40) : 0;
+                const isCurrentMonth = index === dataValues.length - 1;
+                const barColor = chartType === 'pendapatan' ? 
+                    (isCurrentMonth ? 'bg-green-500' : 'bg-green-400') : 
+                    (isCurrentMonth ? 'bg-red-500' : 'bg-red-400');
+                
+                chartHTML += `
+                    <div class="flex flex-col items-center flex-1" style="height: ${chartHeight}px;">
+                        <div class="text-xs text-gray-600 mb-1 text-center">${formatRupiah(value)}</div>
+                        <div class="${barColor} rounded-t w-full transition-all duration-300 hover:opacity-80" 
+                             style="height: ${barHeight}px; min-height: ${value > 0 ? '20px' : '0'};"
+                             title="${months[index]}: ${formatRupiah(value)}">
+                        </div>
+                        <div class="text-xs text-gray-500 mt-2 text-center" style="writing-mode: vertical-rl; transform: rotate(180deg); height: 60px;">
+                            ${months[index].substring(0, 3)}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            chartHTML += `
+                    </div>
+                    <div class="text-center mt-4">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${chartType === 'pendapatan' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                            Total ${chartType === 'pendapatan' ? 'Pendapatan' : 'Tunggakan'}: ${formatRupiah(dataValues.reduce((a, b) => a + b, 0))}
+                        </span>
+                    </div>
+                </div>
+            `;
+            
+            chartContainer.innerHTML = chartHTML;
+        }
+
+        // Fungsi untuk update chart
+        async function updateChart() {
+            const chartType = document.getElementById('chartType').value;
+            const statsData = await getMonthlyStats();
+            renderChart(statsData, chartType);
+        }
+
+        // ========================
+        // FUNGSI LAINNYA
+        // ========================
+
+        // Fungsi Kunci Sandi
+        function checkURLReset() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const reset = urlParams.get('reset');
+            if (reset === 'true') {
+                localStorage.removeItem(PASSWORD_HASH_KEY);
+                console.log("Password hash reset.");
+                showInfoModal("Password telah direset. Silakan login kembali.", "info");
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+
+        function initializeLockScreen() {
+            const storedHash = localStorage.getItem(PASSWORD_HASH_KEY);
+            if (!storedHash) {
+                console.log("Belum ada hash. Menunggu login pertama.");
+            }
+        }
+        
+        async function handleLogin(event) {
+            event.preventDefault();
+            const password = passwordInput.value;
+            const storedHash = localStorage.getItem(PASSWORD_HASH_KEY);
+            const correctHash = sha256(correctPassword);
+
+            if (!storedHash) {
+                if (password === correctPassword) {
+                    localStorage.setItem(PASSWORD_HASH_KEY, correctHash);
+                    unlockApp();
+                } else {
+                    triggerLoginError();
+                }
+            } else {
+                const inputHash = sha256(password);
+                if (inputHash === correctHash) {
+                    if (storedHash !== correctHash) {
+                        localStorage.setItem(PASSWORD_HASH_KEY, correctHash);
+                    }
+                    unlockApp();
+                } else {
+                    triggerLoginError();
+                }
+            }
+        }
+
+        function triggerLoginError() {
+            passwordError.classList.remove('hidden');
+            const lockFormContainer = lockForm.parentElement;
+            lockFormContainer.classList.add('shake');
+            passwordInput.focus();
+            setTimeout(() => {
+                lockFormContainer.classList.remove('shake');
+            }, 500);
+        }
+
+        function unlockApp() {
+            lockScreen.classList.add('hidden');
+            appContent.classList.remove('hidden');
+            initializeAppService();
+        }
+
+        // Fungsi Utama Aplikasi
+        async function initializeAppService() {
+            try {
+                if (firebaseConfig.apiKey.startsWith("MASUKKAN_")) {
+                    console.error("Konfigurasi Firebase tidak ditemukan!");
+                    showInfoModal("Error: Konfigurasi Firebase tidak ditemukan.", "error");
+                    loadingOverlay.style.display = 'none';
+                    return;
+                }
+                
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                await signInAnonymously(auth);
+                
+                const userId = auth.currentUser.uid;
+                if (!userId) {
+                    throw new Error("Gagal mendapatkan User ID setelah login anonim.");
+                }
+
+                customersCollection = collection(db, "pelanggan");
+                settingsCollection = collection(db, "settings");
+                paymentsCollection = collection(db, "payments");
+                settingsDocRef = doc(settingsCollection, "appConfig");
+
+                setupSnapshotListener();
+                setupSettingsListener();
+
+            } catch (error) {
+                console.error("Error initializing Firebase:", error);
+                showInfoModal("Error terhubung ke database.", "error");
+                loadingOverlay.style.display = 'none';
+            }
+        }
+
+        // Setup listener real-time untuk PELANGGAN
+        function setupSnapshotListener() {
+            if (unsubscribeSnap) {
+                unsubscribeSnap();
+            }
+
+            unsubscribeSnap = onSnapshot(customersCollection, (snapshot) => {
+                customersData = [];
+                snapshot.forEach((doc) => {
+                    customersData.push({ id: doc.id, ...doc.data() });
+                });
+                
+                customersData.sort((a, b) => a.nama.localeCompare(b.nama));
+                
+                renderCustomers(currentFilter);
+                calculateTotalBill();
+                updateFilterCounts();
+                updateAnalytics();
+                updateChart();
+                
+                loadingOverlay.style.display = 'none';
+                
+            }, (error) => {
+                console.error("Error listening to snapshot:", error);
+                showInfoModal("Error mengambil data real-time.", "error");
+                loadingOverlay.style.display = 'none';
+            });
+        }
+        
+        // Setup listener real-time untuk PENGATURAN
+        function setupSettingsListener() {
+            if (unsubscribeSettingsSnap) {
+                unsubscribeSettingsSnap();
+            }
+
+            unsubscribeSettingsSnap = onSnapshot(settingsDocRef, (doc) => {
+                if (doc.exists()) {
+                    appSettings = { ...appSettings, ...doc.data() };
+                } else {
+                    setDoc(settingsDocRef, appSettings).catch(e => console.error("Could not create default settings", e));
+                }
+                updateUIForSettings();
+            }, (error) => {
+                console.error("Error listening to settings:", error);
+            });
+        }
+        
+        function updateUIForSettings() {
+            appTitleHeader.textContent = appSettings.namaUsaha || "Billing App";
+            document.getElementById('namaUsaha').value = appSettings.namaUsaha;
+            document.getElementById('templateWa').value = appSettings.templateWa;
+        }
+
+        // MODIFIKASI fungsi handlePayment untuk mencatat pembayaran
+        async function handlePayment(isLunas = false) {
+            const id = document.getElementById('paymentCustomerId').value;
+            const totalTagihan = parseFloat(document.getElementById('paymentTotalAmount').value);
+            let jumlahBayar;
+
+            if (isLunas) {
+                jumlahBayar = totalTagihan;
+            } else {
+                jumlahBayar = parseFloat(document.getElementById('paymentAmount').value) || 0;
+            }
+
+            if (jumlahBayar <= 0 && !isLunas && totalTagihan > 0) {
+                showInfoModal('Jumlah bayar tidak valid.', 'error');
+                return;
+            }
+
+            let sisaTunggakan = totalTagihan - jumlahBayar;
+            if (sisaTunggakan < 0) sisaTunggakan = 0;
+
+            try {
+                const customerRef = doc(customersCollection, id);
+                const customer = customersData.find(c => c.id === id);
+                
+                await updateDoc(customerRef, {
+                    tunggakan: sisaTunggakan,
+                    tagihanBulanIni: 0
+                });
+
+                // CATAT PEMBAYARAN KE HISTORY JIKA ADA BAYAR
+                if (jumlahBayar > 0) {
+                    const currentDate = new Date();
+                    const bulanTahun = currentDate.toISOString().substring(0, 7);
+                    
+                    await recordPayment(
+                        id, 
+                        customer.nama, 
+                        jumlahBayar, 
+                        isLunas ? 'lunas' : 'manual', 
+                        bulanTahun
+                    );
+                }
+
+                showInfoModal('Pembayaran berhasil!');
+                toggleModal('paymentModal', false);
+            } catch (error) {
+                console.error("Error processing payment:", error);
+                showInfoModal('Gagal memproses pembayaran.', 'error');
+            }
+        }
+
+        // Fungsi untuk merender daftar pelanggan
+        function renderCustomers(filter) {
+            customerList.innerHTML = '';
+            
+            let filteredCustomers;
+            if (filter === "lunas") {
+                filteredCustomers = customersData.filter(c => (c.tunggakan || 0) + (c.tagihanBulanIni || 0) === 0);
+            } else if (filter === "belum-bayar") {
+                filteredCustomers = customersData.filter(c => (c.tunggakan || 0) + (c.tagihanBulanIni || 0) > 0);
+            } else if (filter === "ada-tunggakan") {
+                filteredCustomers = customersData.filter(c => (c.tunggakan || 0) > 0);
+            } else {
+                filteredCustomers = customersData;
+            }
+
+            const searchTerm = document.getElementById('search-bar').value.toLowerCase();
+            if (searchTerm) {
+                filteredCustomers = filteredCustomers.filter(c => 
+                    c.nama.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            if (filteredCustomers.length === 0) {
+                emptyState.classList.remove('hidden');
+                customerList.classList.add('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                customerList.classList.remove('hidden');
+            }
+
+            filteredCustomers.forEach(customer => {
+                const totalTagihan = (customer.tunggakan || 0) + (customer.tagihanBulanIni || 0);
+                const isLunas = totalTagihan === 0;
+
+                const card = document.createElement('div');
+                card.className = `glass-card rounded-xl p-5 flex flex-col justify-between card-hover ${isLunas ? 'status-border-lunas' : 'status-border-tunggak'}`;
+                
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start">
+                            <h3 class="text-lg font-semibold text-gray-800">${customer.nama}</h3>
+                            <div class="flex space-x-1">
+                                <button class="btn-edit p-1 text-gray-400 hover:text-blue-600" data-id="${customer.id}" title="Edit Pelanggan">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                    </svg>
+                                </button>
+                                ${!isLunas ? `
+                                <button class="btn-tagih p-1 text-gray-400 hover:text-blue-600" data-id="${customer.id}" title="Buat Tagihan Manual">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                                        <line x1="12" y1="5" x2="12" y2="19"/>
+                                        <line x1="5" y1="12" x2="19" y2="12"/>
+                                    </svg>
+                                </button>
+                                ` : ''}
+                                <button class="btn-delete p-1 text-gray-400 hover:text-red-600" data-id="${customer.id}" title="Hapus">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                                        <path d="M3 6h18"/>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-500">${customer.paket} (${customer.noHp || 'No HP'})</p>
+                        <p class="text-sm text-gray-500 truncate">${customer.alamat || 'Tidak ada alamat'}</p>
+                        
+                        <div class="mt-4 pt-4 border-t border-gray-100">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-xs text-gray-500">Harga Paket</span>
+                                <span class="text-sm font-medium text-gray-700">${formatRupiah(customer.harga || 0)}</span>
+                            </div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-xs text-gray-500">Tunggakan</span>
+                                <div class="flex items-center space-x-1">
+                                    <span class="text-sm font-medium text-gray-700">${formatRupiah(customer.tunggakan || 0)}</span>
+                                    <button class="btn-edit-tunggakan p-1 text-gray-400 hover:text-blue-600" data-id="${customer.id}" data-tunggakan="${customer.tunggakan || 0}" title="Edit Tunggakan">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-semibold text-gray-800">Total Tagihan</span>
+                                <span class="text-lg font-bold ${isLunas ? 'text-green-600' : 'text-red-600'}">${formatRupiah(totalTagihan)}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-5 flex ${isLunas ? 'justify-end' : 'flex-col sm:flex-row'} items-center ${isLunas ? '' : 'space-y-2 sm:space-y-0 sm:space-x-2'}">
+                        ${isLunas ? `
+                            <span class="status-lunas flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mr-1">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                    <polyline points="22 4 12 14.01 9 11.01"/>
+                                </svg>
+                                LUNAS
+                            </span>
+                        ` : `
+                            <button class="btn-bayar w-full px-4 py-2 macos-primary text-white rounded-lg text-sm font-medium" data-id="${customer.id}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="1" x2="12" y2="23"/>
+                                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                </svg>
+                                Bayar
+                            </button>
+                            <button class="btn-wa w-full px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500" data-id="${customer.id}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="22" y1="2" x2="11" y2="13"/>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                                </svg>
+                                Kirim WA
+                            </button>
+                            <button class="btn-prorata w-full px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500" data-id="${customer.id}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                    <line x1="16" y1="2" x2="16" y2="6"/>
+                                    <line x1="8" y1="2" x2="8" y2="6"/>
+                                    <line x1="3" y1="10" x2="21" y2="10"/>
+                                </svg>
+                                Prorata
+                            </button>
+                        `}
+                    </div>
+                `;
+                
+                customerList.appendChild(card);
+            });
+        }
+
+        // Fungsi utilitas format Rupiah
+        function formatRupiah(angka) {
+            if (angka === null || angka === undefined) angka = 0;
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(angka);
+        }
+
+        // Hitung total tagihan header
+        function calculateTotalBill() {
+            const total = customersData.reduce((acc, c) => acc + (c.tunggakan || 0) + (c.tagihanBulanIni || 0), 0);
+            totalTagihanHeader.textContent = `Total Tagihan: ${formatRupiah(total)}`;
+        }
+        
+        // Update data analitik di Halaman Home
+        async function updateAnalytics() {
+            const totalPelanggan = customersData.length;
+            const totalTagihanAktif = customersData.reduce((acc, c) => acc + (c.tunggakan || 0) + (c.tagihanBulanIni || 0), 0);
+            const totalTunggakan = customersData.reduce((acc, c) => acc + (c.tunggakan || 0), 0);
+            const lunasCount = customersData.filter(c => (c.tunggakan || 0) + (c.tagihanBulanIni || 0) === 0).length;
+            const belumLunasCount = totalPelanggan - lunasCount;
+            const adaTunggakanCount = customersData.filter(c => (c.tunggakan || 0) > 0).length;
+            
+            // Hitung pendapatan bulan ini
+            const currentMonth = new Date().toISOString().substring(0, 7);
+            const paymentsQuery = query(
+                paymentsCollection,
+                where('bulanTahun', '==', currentMonth)
+            );
+            const paymentsSnapshot = await getDocs(paymentsQuery);
+            let pendapatanBulanIni = 0;
+            paymentsSnapshot.forEach(doc => {
+                pendapatanBulanIni += doc.data().jumlahBayar;
+            });
+            
+            document.getElementById('analytic-total-tagihan').textContent = formatRupiah(totalTagihanAktif);
+            document.getElementById('analytic-total-pelanggan').textContent = totalPelanggan;
+            document.getElementById('analytic-pendapatan-bulan-ini').textContent = formatRupiah(pendapatanBulanIni);
+            document.getElementById('analytic-lunas').textContent = lunasCount;
+            document.getElementById('analytic-belum-lunas').textContent = belumLunasCount;
+            document.getElementById('analytic-total-tunggakan').textContent = formatRupiah(totalTunggakan);
+            document.getElementById('analytic-count-tunggakan').textContent = `${adaTunggakanCount} pelanggan`;
+        }
+
+        // Update jumlah count di filter tabs
+        function updateFilterCounts() {
+            const lunasCount = customersData.filter(c => (c.tunggakan || 0) + (c.tagihanBulanIni || 0) === 0).length;
+            const belumBayarCount = customersData.filter(c => (c.tunggakan || 0) + (c.tagihanBulanIni || 0) > 0).length;
+            const adaTunggakanCount = customersData.filter(c => (c.tunggakan || 0) > 0).length;
+
+            const countLunas = document.getElementById('count-lunas');
+            const countBelumBayar = document.getElementById('count-belum-bayar');
+            const countAdaTunggakan = document.getElementById('count-ada-tunggakan');
+
+            countLunas.textContent = lunasCount;
+            countBelumBayar.textContent = belumBayarCount;
+            countAdaTunggakan.textContent = adaTunggakanCount;
+
+            countLunas.classList.toggle('hidden', lunasCount === 0);
+            countBelumBayar.classList.toggle('hidden', belumBayarCount === 0);
+            countAdaTunggakan.classList.toggle('hidden', adaTunggakanCount === 0);
+        }
+
+        // Fungsi toggle modal
+        function toggleModal(modalId, show = true) {
+            const modal = document.getElementById(modalId);
+            if (!modal) return;
+            
+            const content = modal.querySelector('.modal-content');
+
+            if (show) {
+                modal.classList.replace('hidden', 'flex');
+                setTimeout(() => {
+                    if (content) {
+                        content.classList.remove('opacity-0', 'scale-95');
+                        content.classList.add('opacity-100', 'scale-100');
+                    }
+                }, 10);
+            } else {
+                if (content) {
+                    content.classList.remove('opacity-100', 'scale-100');
+                    content.classList.add('opacity-0', 'scale-95');
+                }
+                setTimeout(() => {
+                    modal.classList.replace('flex', 'hidden');
+                }, 300);
+            }
+        }
+        
+        // Tampilkan notifikasi
+        function showInfoModal(message, type = "success") {
+            const infoModal = document.getElementById('infoModal');
+            const infoMessage = document.getElementById('infoMessage');
+
+            infoMessage.textContent = message;
+            
+            infoModal.classList.remove('bg-green-600', 'bg-red-600', 'bg-blue-600');
+
+            if (type === 'error') {
+                infoModal.classList.add('bg-red-600');
+            } else if (type === 'info') {
+                infoModal.classList.add('bg-blue-600');
+            } else {
+                infoModal.classList.add('bg-green-600');
+            }
+
+            infoModal.classList.remove('hidden');
+            setTimeout(() => {
+                infoModal.classList.remove('opacity-0');
+            }, 10);
+            
+            setTimeout(() => {
+                infoModal.classList.add('opacity-0');
+                setTimeout(() => {
+                    infoModal.classList.add('hidden');
+                }, 300);
+            }, 3000);
+        }
+
+        // Setup clear search button
+        function setupSearchClear() {
+            const searchInput = document.getElementById('search-bar');
+            const clearButton = document.getElementById('clear-search');
+            
+            searchInput.addEventListener('input', function() {
+                clearButton.classList.toggle('hidden', this.value === '');
+            });
+            
+            clearButton.addEventListener('click', function() {
+                searchInput.value = '';
+                searchInput.focus();
+                clearButton.classList.add('hidden');
+                renderCustomers(currentFilter);
+            });
+        }
+
+        // Tampilkan modal edit tunggakan
+        function showEditTunggakanModal(id, currentTunggakan) {
+            const customer = customersData.find(c => c.id === id);
+            if (!customer) return;
+
+            document.getElementById('editTunggakanCustomerName').textContent = customer.nama;
+            document.getElementById('editTunggakanAmount').value = currentTunggakan || 0;
+            document.getElementById('editTunggakanCustomerId').value = id;
+
+            toggleModal('editTunggakanModal', true);
+        }
+
+        // Simpan perubahan tunggakan
+        async function saveTunggakan() {
+            const id = document.getElementById('editTunggakanCustomerId').value;
+            const jumlahTunggakan = parseFloat(document.getElementById('editTunggakanAmount').value) || 0;
+
+            if (jumlahTunggakan < 0) {
+                showInfoModal('Jumlah tunggakan tidak boleh negatif.', 'error');
+                return;
+            }
+
+            try {
+                const customerRef = doc(customersCollection, id);
+                await updateDoc(customerRef, {
+                    tunggakan: jumlahTunggakan
+                });
+                showInfoModal('Tunggakan berhasil diperbarui!');
+                toggleModal('editTunggakanModal', false);
+            } catch (error) {
+                console.error("Error updating tunggakan:", error);
+                showInfoModal('Gagal memperbarui tunggakan.', 'error');
+            }
+        }
+
+        // Tampilkan modal tambah pelanggan
+        function showCustomerModal(customer = null) {
+            const form = document.getElementById('customerForm');
+            form.reset();
+            document.getElementById('customerId').value = '';
+            
+            if (customer) {
+                document.getElementById('modalTitle').textContent = 'Edit Pelanggan';
+                document.getElementById('customerId').value = customer.id;
+                document.getElementById('nama').value = customer.nama;
+                document.getElementById('paket').value = customer.paket;
+                document.getElementById('harga').value = customer.harga;
+                document.getElementById('noHp').value = customer.noHp;
+                document.getElementById('alamat').value = customer.alamat;
+            } else {
+                document.getElementById('modalTitle').textContent = 'Tambah Pelanggan Baru';
+            }
+            toggleModal('customerModal', true);
+        }
+
+        // Simpan data pelanggan (Tambah/Edit)
+        async function saveCustomer(event) {
+            event.preventDefault();
+            const customerId = document.getElementById('customerId').value;
+            const harga = parseFloat(document.getElementById('harga').value) || 0;
+            const customerData = {
+                nama: document.getElementById('nama').value,
+                paket: document.getElementById('paket').value,
+                harga: harga,
+                noHp: document.getElementById('noHp').value,
+                alamat: document.getElementById('alamat').value,
+            };
+
+            try {
+                if (customerId) {
+                    const customerRef = doc(customersCollection, customerId);
+                    const customerSnap = await getDoc(customerRef);
+                    const existingData = customerSnap.data();
+                    
+                    await updateDoc(customerRef, {
+                        ...customerData,
+                        tunggakan: existingData.tunggakan || 0,
+                        tagihanBulanIni: (customerData.harga !== existingData.harga && existingData.tagihanBulanIni > 0) ? customerData.harga : (existingData.tagihanBulanIni || 0), 
+                    });
+                    showInfoModal('Data pelanggan berhasil diperbarui!');
+                } else {
+                    await addDoc(customersCollection, {
+                        ...customerData,
+                        tunggakan: 0,
+                        tagihanBulanIni: harga,
+                        createdAt: new Date().toISOString()
+                    });
+                    showInfoModal('Pelanggan baru berhasil ditambahkan!');
+                }
+                toggleModal('customerModal', false);
+            } catch (error) {
+                console.error("Error saving customer:", error);
+                showInfoModal('Gagal menyimpan data pelanggan.', 'error');
+            }
+        }
+
+        // Tampilkan modal pembayaran
+        function showPaymentModal(id) {
+            const customer = customersData.find(c => c.id === id);
+            if (!customer) return;
+
+            const harga = customer.harga || 0;
+            const tunggakan = customer.tunggakan || 0;
+            const tagihanBulanIni = customer.tagihanBulanIni || 0;
+            const total = tunggakan + tagihanBulanIni;
+
+            document.getElementById('paymentCustomerName').textContent = customer.nama;
+            document.getElementById('paymentHarga').textContent = formatRupiah(harga);
+            document.getElementById('paymentTunggakan').textContent = formatRupiah(tunggakan);
+            document.getElementById('paymentTotal').textContent = formatRupiah(total);
+            
+            document.getElementById('paymentAmount').value = '';
+            document.getElementById('paymentCustomerId').value = id;
+            document.getElementById('paymentTotalAmount').value = total;
+
+            toggleModal('paymentModal', true);
+        }
+        
+        // Tampilkan modal tagihan (1 pelanggan)
+        function showTagihanModal(id) {
+            document.getElementById('tagihanCustomerId').value = id;
+            toggleModal('tagihanModal', true);
+        }
+
+        // Proses buat tagihan (1 pelanggan)
+        async function generateTagihan() {
+            const id = document.getElementById('tagihanCustomerId').value;
+            const customer = customersData.find(c => c.id === id);
+            if (!customer) return;
+
+            const hargaPaket = customer.harga || 0;
+            const tagihanBaru = (customer.tagihanBulanIni || 0) + hargaPaket;
+
+            try {
+                const customerRef = doc(customersCollection, id);
+                await updateDoc(customerRef, {
+                    tagihanBulanIni: tagihanBaru
+                });
+                showInfoModal('Tagihan berhasil dibuat!');
+                toggleModal('tagihanModal', false);
+            } catch (error) {
+                console.error("Error generating tagihan:", error);
+                showInfoModal('Gagal membuat tagihan.', 'error');
+            }
+        }
+
+        // Tampilkan modal prorata
+        function showProrataModal(id) {
+            const customer = customersData.find(c => c.id === id);
+            if (!customer) return;
+
+            document.getElementById('prorataCustomerId').value = id;
+            document.getElementById('prorataHarga').value = customer.harga || 0;
+            
+            document.getElementById('tglMulai').value = '';
+            document.getElementById('tglAkhir').value = '';
+            document.getElementById('hariPeriodik').value = 30;
+            document.getElementById('prorataResult').classList.add('hidden');
+            
+            toggleModal('prorataModal', true);
+        }
+
+        // Hitung prorata saat tanggal berubah
+        function calculateProrata() {
+            const tglMulai = document.getElementById('tglMulai').value;
+            const tglAkhir = document.getElementById('tglAkhir').value;
+            const hariPeriodik = parseInt(document.getElementById('hariPeriodik').value) || 30;
+            const harga = parseFloat(document.getElementById('prorataHarga').value) || 0;
+
+            if (tglMulai && tglAkhir && hariPeriodik > 0) {
+                const dateMulai = new Date(tglMulai);
+                const dateAkhir = new Date(tglAkhir);
+                
+                if (dateAkhir < dateMulai) {
+                    document.getElementById('prorataResult').classList.add('hidden');
+                    return;
+                }
+
+                const diffTime = Math.abs(dateAkhir - dateMulai);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                
+                const tagihanProrata = (diffDays / hariPeriodik) * harga;
+
+                document.getElementById('prorataHari').textContent = diffDays;
+                document.getElementById('prorataTotal').textContent = formatRupiah(tagihanProrata);
+                document.getElementById('prorataResult').classList.remove('hidden');
+            } else {
+                document.getElementById('prorataResult').classList.add('hidden');
+            }
+        }
+
+        // Buat tagihan prorata
+        async function handleProrata() {
+            const id = document.getElementById('prorataCustomerId').value;
+            const totalText = document.getElementById('prorataTotal').textContent;
+            
+            const tagihanProrata = parseFloat(totalText.replace(/[^0-9]/g, '')) || 0;
+
+            if (tagihanProrata <= 0) {
+                showInfoModal('Tagihan prorata tidak valid.', 'error');
+                return;
+            }
+
+            const customer = customersData.find(c => c.id === id);
+            if (!customer) return;
+
+            const tagihanBaru = (customer.tagihanBulanIni || 0) + tagihanProrata;
+
+            try {
+                const customerRef = doc(customersCollection, id);
+                await updateDoc(customerRef, {
+                    tagihanBulanIni: tagihanBaru
+                });
+                showInfoModal('Tagihan prorata berhasil ditambahkan!');
+                toggleModal('prorataModal', false);
+            } catch (error) {
+                console.error("Error creating prorata bill:", error);
+                showInfoModal('Gagal membuat tagihan prorata.', 'error');
+            }
+        }
+        
+        // Tampilkan modal WA
+        function showWaModal(id) {
+            const customer = customersData.find(c => c.id === id);
+            if (!customer) return;
+            
+            let noHp = customer.noHp || '';
+            if (noHp.startsWith('0')) {
+                noHp = '62' + noHp.substring(1);
+            }
+            if (!noHp.startsWith('62')) {
+                showInfoModal('Nomor HP tidak valid. Harus diawali 0 atau 62.', 'error');
+                return;
+            }
+
+            const totalTagihan = (customer.tunggakan || 0) + (customer.tagihanBulanIni || 0);
+            
+            let message = appSettings.templateWa;
+            message = message.replace(/{nama}/g, customer.nama);
+            message = message.replace(/{total_tagihan}/g, formatRupiah(totalTagihan));
+            message = message.replace(/{nama_usaha}/g, appSettings.namaUsaha);
+            
+            const waLink = `https://wa.me/${noHp}?text=${encodeURIComponent(message)}`;
+            
+            document.getElementById('waCustomerName').textContent = customer.nama;
+            document.getElementById('waCustomerPhone').textContent = customer.noHp;
+            document.getElementById('waMessagePreview').value = message;
+            document.getElementById('btn-kirim-wa').href = waLink;
+            
+            toggleModal('waModal', true);
+        }
+        
+        // Copy pesan WA ke clipboard
+        function copyWaMessage() {
+            const message = document.getElementById('waMessagePreview').value;
+            
+            const textarea = document.createElement('textarea');
+            textarea.value = message;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showInfoModal('Pesan berhasil disalin!');
+            } catch (err) {
+                console.error('Gagal menyalin pesan: ', err);
+                showInfoModal('Gagal menyalin pesan.', 'error');
+            }
+            document.body.removeChild(textarea);
+            toggleModal('waModal', false);
+        }
+
+        // Tampilkan modal hapus
+        function showDeleteModal(id) {
+            document.getElementById('deleteCustomerId').value = id;
+            toggleModal('deleteModal', true);
+        }
+
+        // Hapus pelanggan
+        async function deleteCustomer() {
+            const id = document.getElementById('deleteCustomerId').value;
+            try {
+                await deleteDoc(doc(customersCollection, id));
+                showInfoModal('Pelanggan berhasil dihapus.');
+                toggleModal('deleteModal', false);
+            } catch (error) {
+                console.error("Error deleting customer:", error);
+                showInfoModal('Gagal menghapus pelanggan.', 'error');
+            }
+        }
+
+        // Tampilkan modal hapus SEMUA
+        function showDeleteSemuaModal() {
+            toggleModal('deleteSemuaModal', true);
+            toggleModal('kebab-menu-modal', false);
+        }
+
+        // Hapus SEMUA pelanggan
+        async function deleteAllCustomers() {
+            toggleModal('deleteSemuaModal', false);
+            loadingOverlay.style.display = 'flex';
+
+            try {
+                const querySnap = await getDocs(customersCollection);
+                const batch = writeBatch(db);
+                
+                querySnap.forEach((doc) => {
+                    batch.delete(doc.ref);
+                });
+
+                await batch.commit();
+                showInfoModal('SEMUA data pelanggan telah dihapus.');
+            } catch (error) {
+                console.error("Error deleting all customers:", error);
+                showInfoModal('Gagal menghapus semua data.', 'error');
+            } finally {
+                loadingOverlay.style.display = 'none';
+            }
+        }
+
+        // Tampilkan modal import
+        function showImportModal() {
+            document.getElementById('excelFile').value = '';
+            toggleModal('importModal', true);
+            toggleModal('kebab-menu-modal', false);
+        }
+
+        // Import data dari Excel
+        function importExcel() {
+            const fileInput = document.getElementById('excelFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showInfoModal('Silakan pilih file Excel terlebih dahulu.', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+
+            reader.onload = async (event) => {
+                loadingOverlay.style.display = 'flex';
+                toggleModal('importModal', false);
+
+                try {
+                    const data = new Uint8Array(event.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    if (json.length < 2) {
+                        showInfoModal('File Excel kosong atau tidak valid.', 'error');
+                        return;
+                    }
+
+                    const headers = json[0].map(h => (h || '').toString().toLowerCase());
+                    const requiredHeaders = ['nama', 'paket', 'harga', 'no hp', 'alamat'];
+                    
+                    const colIndex = {};
+                    requiredHeaders.forEach(rh => {
+                        colIndex[rh] = headers.indexOf(rh);
+                    });
+
+                    if (colIndex['nama'] === -1 || colIndex['harga'] === -1) {
+                        showInfoModal('Format Excel salah. Pastikan ada kolom NAMA dan HARGA.', 'error');
+                        return;
+                    }
+
+                    json.shift(); 
+                    
+                    const batch = writeBatch(db);
+                    let importCount = 0;
+                    
+                    json.forEach(row => {
+                        const nama = row[colIndex['nama']];
+                        const harga = row[colIndex['harga']];
+
+                        if (nama && harga) {
+                            const hargaNum = parseFloat(harga) || 0;
+                            const newCustomer = {
+                                nama: (nama || '').toString(),
+                                paket: colIndex['paket'] !== -1 ? (row[colIndex['paket']] || '').toString() : '',
+                                harga: hargaNum,
+                                noHp: colIndex['no hp'] !== -1 ? (row[colIndex['no hp']] || '').toString() : '',
+                                alamat: colIndex['alamat'] !== -1 ? (row[colIndex['alamat']] || '').toString() : '',
+                                tunggakan: 0,
+                                tagihanBulanIni: hargaNum,
+                                createdAt: new Date().toISOString()
+                            };
+                            
+                            const docRef = doc(customersCollection);
+                            batch.set(docRef, newCustomer);
+                            importCount++;
+                        }
+                    });
+
+                    await batch.commit();
+                    showInfoModal(`${importCount} pelanggan berhasil diimpor!`);
+
+                } catch (error) {
+                    console.error("Error batch importing data:", error);
+                    showInfoModal('Gagal mengimpor data. Cek format file.', 'error');
+                } finally {
+                    loadingOverlay.style.display = 'none';
+                }
+            };
+            
+            reader.onerror = () => {
+                showInfoModal('Gagal membaca file.', 'error');
+                loadingOverlay.style.display = 'none';
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Buat tagihan untuk SEMUA pelanggan
+        async function generateTagihanSemua() {
+            toggleModal('kebab-menu-modal', false);
+            loadingOverlay.style.display = 'flex';
+
+            try {
+                const batch = writeBatch(db);
+                
+                customersData.forEach(customer => {
+                    const hargaPaket = customer.harga || 0;
+                    const tunggakanBaru = (customer.tunggakan || 0) + (customer.tagihanBulanIni || 0);
+                    const tagihanBulanIniBaru = hargaPaket;
+                    
+                    const docRef = doc(customersCollection, customer.id);
+                    batch.update(docRef, {
+                        tunggakan: tunggakanBaru,
+                        tagihanBulanIni: tagihanBulanIniBaru
+                    });
+                });
+
+                await batch.commit();
+                showInfoModal('Tagihan baru berhasil dibuat untuk semua pelanggan!');
+            } catch (error) {
+                console.error("Error generating all bills:", error);
+                showInfoModal('Gagal membuat tagihan massal.', 'error');
+            } finally {
+                loadingOverlay.style.display = 'none';
+            }
+        }
+        
+        // Simpan Pengaturan
+        async function saveSettings(event) {
+            event.preventDefault();
+            const namaUsaha = document.getElementById('namaUsaha').value;
+            const templateWa = document.getElementById('templateWa').value;
+            
+            const newSettings = {
+                namaUsaha: namaUsaha,
+                templateWa: templateWa
+            };
+            
+            try {
+                await setDoc(settingsDocRef, newSettings, { merge: true });
+                showInfoModal('Pengaturan berhasil disimpan!');
+            } catch (error) {
+                console.error("Error saving settings:", error);
+                showInfoModal('Gagal menyimpan pengaturan.', 'error');
+            }
+        }
+
+        // Tampilkan modal hapus transaksi
+        function showDeletePaymentModal(paymentId, customerId, amount) {
+            document.getElementById('deletePaymentId').value = paymentId;
+            document.getElementById('deletePaymentCustomerId').value = customerId;
+            document.getElementById('deletePaymentAmount').value = amount;
+            toggleModal('deletePaymentModal', true);
+        }
+
+        // Hapus transaksi dan kembalikan status pelanggan
+        async function deletePayment() {
+            const paymentId = document.getElementById('deletePaymentId').value;
+            const customerId = document.getElementById('deletePaymentCustomerId').value;
+            const amount = parseFloat(document.getElementById('deletePaymentAmount').value);
+
+            try {
+                // Hapus transaksi dari payments collection
+                await deleteDoc(doc(paymentsCollection, paymentId));
+                
+                // Kembalikan status pelanggan menjadi belum bayar
+                const customerRef = doc(customersCollection, customerId);
+                const customer = customersData.find(c => c.id === customerId);
+                
+                if (customer) {
+                    const tunggakanBaru = (customer.tunggakan || 0) + amount;
+                    await updateDoc(customerRef, {
+                        tunggakan: tunggakanBaru
+                    });
+                }
+                
+                showInfoModal('Transaksi berhasil dihapus dan status pelanggan dikembalikan!');
+                toggleModal('deletePaymentModal', false);
+                
+                // Regenerate laporan untuk memperbarui tampilan
+                generateReport();
+                
+            } catch (error) {
+                console.error("Error deleting payment:", error);
+                showInfoModal('Gagal menghapus transaksi.', 'error');
+            }
+        }
+
+        // Fungsi untuk navigasi antar tab
+        function navigateToTab(pageId, filter = null) {
+            const navButton = document.querySelector(`.btn-nav[data-page="${pageId}"]`);
+            if (navButton) {
+                navButton.click();
+            }
+
+            if (pageId === 'pelanggan' && filter) {
+                setTimeout(() => {
+                    const filterButton = document.querySelector(`.tab-filter[data-filter="${filter}"]`);
+                    if (filterButton) {
+                        filterButton.click();
+                    }
+                }, 50);
+            }
+        }
+
+        // =============================================
+        // EVENT LISTENERS
+        // =============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Event Listener untuk Laporan ---
+            document.getElementById('generateReport').addEventListener('click', generateReport);
+            document.getElementById('generateFirstReport').addEventListener('click', generateReport);
+            document.getElementById('exportReport').addEventListener('click', exportReportToCSV);
+            document.getElementById('exportReportPDF').addEventListener('click', exportReportToPDF);
+            document.getElementById('btn-konfirmasi-hapus-payment').addEventListener('click', deletePayment);
+
+            // Setup report filters
+            setupReportFilters();
+
+            // Set default dates untuk custom range
+            const today = new Date().toISOString().split('T')[0];
+            const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 2).toISOString().split('T')[0];
+            document.getElementById('startDate').value = firstDayOfMonth;
+            document.getElementById('endDate').value = today;
+
+            // Auto generate laporan saat masuk ke halaman laporan
+            document.querySelector('.btn-nav[data-page="laporan"]').addEventListener('click', () => {
+                setTimeout(() => {
+                    if (document.getElementById('page-laporan').classList.contains('active')) {
+                        generateReport();
+                    }
+                }, 100);
+            });
+
+            // --- Logika Kunci Sandi ---
+            checkURLReset();
+            initializeLockScreen();
+            lockForm.addEventListener('submit', handleLogin);
+
+            // --- Setup Clear Search ---
+            setupSearchClear();
+
+            // --- Event Listener untuk Chart Type ---
+            document.getElementById('chartType').addEventListener('change', updateChart);
+
+            // --- Event Listener Navigasi Tab Bawah ---
+            const pages = document.querySelectorAll('.page');
+            const navButtons = document.querySelectorAll('.btn-nav');
+            
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const pageId = button.dataset.page;
+                    
+                    pages.forEach(page => page.classList.remove('active'));
+                    document.getElementById(`page-${pageId}`).classList.add('active');
+                    
+                    navButtons.forEach(btn => {
+                        btn.classList.add('text-gray-500', 'hover:text-blue-500');
+                        btn.classList.remove('text-blue-500');
+                        const svg = btn.querySelector('svg');
+                        if (svg) {
+                            svg.innerHTML = svg.innerHTML.replace('fill="currentColor"', 'fill="none" stroke-width="1.5" stroke="currentColor"');
+                        }
+                    });
+                    
+                    button.classList.add('text-blue-500');
+                    button.classList.remove('text-gray-500', 'hover:text-blue-500');
+                    const svg = button.querySelector('svg');
+                    if (svg) {
+                        svg.innerHTML = svg.innerHTML.replace('fill="none" stroke-width="1.5" stroke="currentColor"', 'fill="currentColor"');
+                    }
+                    
+                    if(pageId === 'home') {
+                        updateAnalytics();
+                        updateChart();
+                    }
+                    
+                    document.getElementById('fab-tambah-pelanggan').classList.toggle('hidden', pageId !== 'pelanggan');
+                });
+            });
+            
+            document.getElementById('fab-tambah-pelanggan').classList.add('hidden');
+            const homeNavButton = document.querySelector('.btn-nav[data-page="home"] svg');
+            if(homeNavButton) {
+                 homeNavButton.innerHTML = homeNavButton.innerHTML.replace('fill="none" stroke-width="1.5" stroke="currentColor"', 'fill="currentColor"');
+            }
+
+            // --- Event Listener untuk Modals ---
+            document.querySelectorAll('button[data-modal]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const modalId = btn.dataset.modal;
+                    toggleModal(modalId, false);
+                });
+            });
+            
+            document.querySelectorAll('.modal-backdrop').forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        toggleModal(modal.id, false);
+                    }
+                });
+            });
+
+            // --- Event Listener Kebab Menu ---
+            const kebabMenuButton = document.getElementById('kebab-menu-button');
+            const kebabMenuModal = document.getElementById('kebab-menu-modal');
+            kebabMenuButton.addEventListener('click', () => {
+                kebabMenuModal.classList.toggle('hidden');
+            });
+            
+            document.addEventListener('click', (e) => {
+                if (!kebabMenuButton.contains(e.target) && !kebabMenuModal.contains(e.target)) {
+                    kebabMenuModal.classList.add('hidden');
+                }
+            });
+
+            // Tombol di dalam Kebab Menu
+            document.getElementById('import-excel-btn-menu').addEventListener('click', showImportModal);
+            document.getElementById('buat-tagihan-semua-btn-menu').addEventListener('click', generateTagihanSemua);
+            document.getElementById('hapus-semua-btn-menu').addEventListener('click', showDeleteSemuaModal);
+            document.getElementById('btn-import-excel').addEventListener('click', importExcel);
+            document.getElementById('btn-konfirmasi-hapus-semua').addEventListener('click', deleteAllCustomers);
+            
+            // --- Event Listener Filter Tabs (Pelanggan) ---
+            const filterNav = document.getElementById('filter-nav');
+            filterNav.addEventListener('click', (e) => {
+                const target = e.target.closest('.tab-filter');
+                if (!target) return;
+                
+                const filter = target.dataset.filter;
+                currentFilter = filter;
+                
+                filterNav.querySelectorAll('.tab-filter').forEach(tab => {
+                    tab.classList.remove('active');
+                    tab.classList.add('text-gray-500', 'hover:text-gray-700');
+                });
+                target.classList.add('active');
+                target.classList.remove('text-gray-500', 'hover:text-gray-700');
+                
+                renderCustomers(currentFilter);
+            });
+
+            // --- Event Listener Search Bar ---
+            document.getElementById('search-bar').addEventListener('input', () => {
+                renderCustomers(currentFilter);
+            });
+
+            // --- Event Listener Home Analytic Cards ---
+            document.getElementById('analytic-card-total').addEventListener('click', () => {
+                navigateToTab('pelanggan', 'semua');
+            });
+            document.getElementById('analytic-card-pendapatan').addEventListener('click', () => {
+                navigateToTab('laporan');
+            });
+            document.getElementById('analytic-card-belum-lunas').addEventListener('click', () => {
+                navigateToTab('pelanggan', 'belum-bayar');
+            });
+            document.getElementById('analytic-card-tunggakan').addEventListener('click', () => {
+                navigateToTab('pelanggan', 'ada-tunggakan');
+            });
+
+            // --- Event Listener Form ---
+            document.getElementById('customerForm').addEventListener('submit', saveCustomer);
+            document.getElementById('fab-tambah-pelanggan').addEventListener('click', () => showCustomerModal());
+            document.getElementById('tambah-pelanggan-empty').addEventListener('click', () => showCustomerModal());
+            document.getElementById('settingsForm').addEventListener('submit', saveSettings);
+            
+            // Edit Tunggakan Modal
+            document.getElementById('btn-simpan-tunggakan').addEventListener('click', saveTunggakan);
+            
+            // Payment Modal
+            document.getElementById('btn-bayar-lunas').addEventListener('click', () => handlePayment(true));
+            document.getElementById('btn-bayar-manual').addEventListener('click', () => handlePayment(false));
+
+            // Prorata Modal
+            document.getElementById('tglMulai').addEventListener('change', calculateProrata);
+            document.getElementById('tglAkhir').addEventListener('change', calculateProrata);
+            document.getElementById('hariPeriodik').addEventListener('input', calculateProrata);
+            document.getElementById('btn-buat-prorata').addEventListener('click', handleProrata);
+            
+            // WA Modal
+            document.getElementById('btn-copy-wa').addEventListener('click', copyWaMessage);
+            
+            // Tagihan & Delete Modals
+            document.getElementById('btn-konfirmasi-tagihan').addEventListener('click', generateTagihan);
+            document.getElementById('btn-konfirmasi-hapus').addEventListener('click', deleteCustomer);
+            
+            // --- Event Listener Dinamis (delegasi event) ---
+            customerList.addEventListener('click', (e) => {
+                const target = e.target.closest('button');
+                if (!target) return;
+
+                const id = target.dataset.id;
+                
+                if (target.classList.contains('btn-edit')) {
+                    const customer = customersData.find(c => c.id === id);
+                    showCustomerModal(customer);
+                }
+                if (target.classList.contains('btn-edit-tunggakan')) {
+                    const currentTunggakan = parseFloat(target.dataset.tunggakan) || 0;
+                    showEditTunggakanModal(id, currentTunggakan);
+                }
+                if (target.classList.contains('btn-delete')) {
+                    showDeleteModal(id);
+                }
+                if (target.classList.contains('btn-bayar')) {
+                    showPaymentModal(id);
+                }
+                if (target.classList.contains('btn-tagih')) {
+                    showTagihanModal(id);
+                }
+                if (target.classList.contains('btn-prorata')) {
+                    showProrataModal(id);
+                }
+                if (target.classList.contains('btn-wa')) {
+                    showWaModal(id);
+                }
+            });
+
+            // Event Listener untuk tombol delete transaksi di laporan
+            document.getElementById('reportTransactions').addEventListener('click', (e) => {
+                const target = e.target.closest('.btn-delete-payment');
+                if (!target) return;
+
+                const paymentId = target.dataset.id;
+                const customerId = target.dataset.customerId;
+                const amount = parseFloat(target.dataset.amount);
+                
+                showDeletePaymentModal(paymentId, customerId, amount);
+            });
+
+            // --- Dark Mode Toggle ---
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            darkModeToggle.addEventListener('click', () => {
+                document.body.classList.toggle('dark');
+                localStorage.setItem('darkMode', document.body.classList.contains('dark'));
+            });
+
+            // Apply saved theme on load
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.body.classList.add('dark');
+            }
+        });
+    </script>
+</body>
+</html>
